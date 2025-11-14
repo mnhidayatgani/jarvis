@@ -24,16 +24,16 @@
 
 **Purpose**: Project initialization and basic structure for both jarvis-mcp and jarvis-cli
 
-- [ ] T001 Create jarvis-mcp directory structure (src/jarvis/{memory,mcp,capture,speckit,utils}, tests/{unit,integration,e2e})
-- [ ] T002 [P] Create jarvis-cli directory structure (src/{commands,api,config,utils}, tests/{unit,integration})
-- [ ] T003 [P] Create jarvis-mcp/pyproject.toml with dependencies (chromadb==0.4.24, sentence-transformers, watchdog, uv dev deps)
-- [ ] T004 [P] Create jarvis-cli/package.json with dependencies (esbuild, typescript, vitest, eslint, prettier, pnpm config)
-- [ ] T005 [P] Create jarvis-cli/tsconfig.json with strict mode and ESM configuration
-- [ ] T006 [P] Create jarvis-cli/.eslintrc.json with Airbnb + TypeScript rules
-- [ ] T007 [P] Create jarvis-cli/.prettierrc.json with constitution-compliant formatting (single quotes, no semicolons)
-- [ ] T008 [P] Create jarvis-cli/vitest.config.ts for testing configuration
-- [ ] T009 [P] Create all **init**.py files for Python packages in jarvis-mcp/src/jarvis/
-- [ ] T010 [P] Create .gitignore files for both projects (Python-specific and Node-specific)
+- [x] T001 Create jarvis-mcp directory structure (src/jarvis/{memory,mcp,capture,speckit,utils}, tests/{unit,integration,e2e})
+- [x] T002 [P] Create jarvis-cli directory structure (src/{commands,api,config,utils}, tests/{unit,integration})
+- [x] T003 [P] Create jarvis-mcp/pyproject.toml with dependencies (chromadb==0.4.24, sentence-transformers, watchdog, uv dev deps)
+- [x] T004 [P] Create jarvis-cli/package.json with dependencies (esbuild, typescript, vitest, eslint, prettier, pnpm config)
+- [x] T005 [P] Create jarvis-cli/tsconfig.json with strict mode and ESM configuration
+- [x] T006 [P] Create jarvis-cli/.eslintrc.json with Airbnb + TypeScript rules
+- [x] T007 [P] Create jarvis-cli/.prettierrc.json with constitution-compliant formatting (single quotes, no semicolons)
+- [x] T008 [P] Create jarvis-cli/vitest.config.ts for testing configuration
+- [x] T009 [P] Create all **init**.py files for Python packages in jarvis-mcp/src/jarvis/
+- [x] T010 [P] Create .gitignore files for both projects (Python-specific and Node-specific)
 
 ---
 
