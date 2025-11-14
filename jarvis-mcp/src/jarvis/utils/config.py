@@ -6,21 +6,30 @@ project-level (.jarvis/config.json) configuration files.
 
 import hashlib
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, TypedDict, cast
+
+
+class UserConfig(TypedDict):
+    """User configuration structure matching Constitution 2.2."""
+
+    language: str
+    responseStyle: str
+    persona: str
+
+
+# Default configuration from Constitution 2.2
+DEFAULT_CONFIG: UserConfig = {
+    "language": "en",
+    "responseStyle": "concise",
+    "persona": "jarvis",
+}
 
 
 class Configuration:
     """Manages JARVIS configuration with global and project-level settings."""
 
-    DEFAULT_CONFIG: Dict[str, Any] = {
-        "language": "en",
-        "responseStyle": "concise",
-        "persona": "jarvis",
-    }
-
-    def __init__(self, project_root: Optional[Path] = None) -> None:
+    def __init__(self, project_root: Path | None = None) -> None:
         """Initialize configuration.
 
         Args:
@@ -28,13 +37,13 @@ class Configuration:
                          If None, only global config is loaded.
         """
         self.project_root = project_root
-        self._config: Dict[str, Any] = {}
+        self._config: dict[str, Any] = {}
         self._load_config()
 
     def _load_config(self) -> None:
         """Load and merge global and project configurations."""
         # Start with defaults
-        self._config = self.DEFAULT_CONFIG.copy()
+        self._config = dict(DEFAULT_CONFIG)
 
         # Load global config
         global_config = self._load_global_config()
@@ -47,7 +56,7 @@ class Configuration:
             if project_config:
                 self._config.update(project_config)
 
-    def _load_global_config(self) -> Dict[str, Any]:
+    def _load_global_config(self) -> dict[str, Any]:
         """Load global configuration from ~/.jarvis/config.json.
 
         Returns:
@@ -56,7 +65,7 @@ class Configuration:
         config_path = self._get_global_config_path()
         return self._read_config_file(config_path)
 
-    def _load_project_config(self) -> Dict[str, Any]:
+    def _load_project_config(self) -> dict[str, Any]:
         """Load project configuration from .jarvis/config.json.
 
         Returns:
@@ -68,7 +77,7 @@ class Configuration:
         config_path = self.project_root / ".jarvis" / "config.json"
         return self._read_config_file(config_path)
 
-    def _read_config_file(self, path: Path) -> Dict[str, Any]:
+    def _read_config_file(self, path: Path) -> dict[str, Any]:
         """Read a configuration file.
 
         Args:
@@ -81,9 +90,10 @@ class Configuration:
             return {}
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
+            with open(path, encoding="utf-8") as f:
+                result: dict[str, Any] = json.load(f)
+                return result
+        except (json.JSONDecodeError, OSError) as e:
             print(f"Warning: Failed to load config from {path}: {e}")
             return {}
 
@@ -97,7 +107,7 @@ class Configuration:
         home = Path.home()
         return home / ".jarvis" / "config.json"
 
-    def get_config(self, key: Optional[str] = None) -> Any:
+    def get_config(self, key: str | None = None) -> Any:
         """Get configuration value.
 
         Args:
@@ -166,7 +176,7 @@ class Configuration:
         config_path = self.project_root / ".jarvis" / "config.json"
         self._write_config_file(config_path, self._config)
 
-    def _write_config_file(self, path: Path, config: Dict[str, Any]) -> None:
+    def _write_config_file(self, path: Path, config: dict[str, Any]) -> None:
         """Write configuration to file.
 
         Args:
@@ -182,7 +192,7 @@ class Configuration:
         except IOError as e:
             print(f"Warning: Failed to save config to {path}: {e}")
 
-    def generate_project_id(self, project_path: Optional[Path] = None) -> str:
+    def generate_project_id(self, project_path: Path | None = None) -> str:
         """Generate unique project ID from absolute path.
 
         Args:
@@ -206,7 +216,7 @@ class Configuration:
 
 
 def get_config(
-    key: Optional[str] = None, project_root: Optional[Path] = None
+    key: str | None = None, project_root: Path | None = None
 ) -> Any:
     """Convenience function to get configuration value.
 
@@ -225,7 +235,7 @@ def set_config(
     key: str,
     value: Any,
     global_scope: bool = False,
-    project_root: Optional[Path] = None,
+    project_root: Path | None = None,
 ) -> None:
     """Convenience function to set configuration value.
 
@@ -239,7 +249,7 @@ def set_config(
     config.set_config(key, value, global_scope)
 
 
-def validate_config(project_root: Optional[Path] = None) -> bool:
+def validate_config(project_root: Path | None = None) -> bool:
     """Convenience function to validate configuration.
 
     Args:
@@ -250,3 +260,57 @@ def validate_config(project_root: Optional[Path] = None) -> bool:
     """
     config = Configuration(project_root)
     return config.validate_config()
+
+
+# US-1.1: Additional helper functions for MCP server
+
+
+def get_config_path() -> Path:
+    """Get path to global configuration file.
+
+    Returns:
+        Path object for ~/.jarvis/config.json
+    """
+    return Path.home() / ".jarvis" / "config.json"
+
+
+def load_config() -> UserConfig:
+    """Load global user configuration from ~/.jarvis/config.json.
+
+    This function loads the user's global preferences and merges them
+    over the defaults defined in Constitution 2.2.
+
+    Returns:
+        UserConfig dictionary with merged configuration.
+    """
+    # Start with defaults
+    config: dict[str, Any] = dict(DEFAULT_CONFIG)
+
+    # Get config path
+    config_path = get_config_path()
+
+    # Load and merge if file exists
+    if config_path.exists():
+        try:
+            with open(config_path, encoding="utf-8") as f:
+                loaded_config = json.load(f)
+                # Merge loaded config over defaults
+                config.update(loaded_config)
+        except (json.JSONDecodeError, OSError) as e:
+            # If there's an error, return defaults
+            print(f"Warning: Failed to load config from {config_path}: {e}")
+
+    return cast(UserConfig, config)
+
+
+def get_config_value(key: str) -> Any:
+    """Get a specific configuration value.
+
+    Args:
+        key: Configuration key to retrieve.
+
+    Returns:
+        The configuration value for the key, or None if not found.
+    """
+    config = load_config()
+    return config.get(key)
