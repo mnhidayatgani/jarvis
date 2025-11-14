@@ -43,20 +43,20 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T011 Implement Configuration class in jarvis-mcp/src/jarvis/utils/config.py (load global ~/.jarvis/config.json, merge with project .jarvis/config.json)
-- [ ] T012 Implement get_config(), set_config(), validate_config() methods in jarvis-mcp/src/jarvis/utils/config.py
-- [ ] T013 Implement project_id generation (SHA256 hash of absolute path) in jarvis-mcp/src/jarvis/utils/config.py
-- [ ] T014 [P] Implement JARVIS persona formatter in jarvis-mcp/src/jarvis/utils/persona.py (format_response(), address_as_sir(), ensure_english())
-- [ ] T015 [P] Implement embeddings wrapper in jarvis-mcp/src/jarvis/utils/embeddings.py (load bge-large-en-v1.5 model, generate_embedding(), batch_embed())
-- [ ] T016 Create SQLite schema for MemoryEntry, ProjectContext tables in jarvis-mcp/src/jarvis/memory/schema.sql
-- [ ] T017 Implement FactualMemory class in jarvis-mcp/src/jarvis/memory/factual.py (initialize SQLite, CRUD operations for MemoryEntry)
-- [ ] T018 Implement create_entry(), get_entry(), query_entries() methods in jarvis-mcp/src/jarvis/memory/factual.py
-- [ ] T019 Implement SemanticMemory class in jarvis-mcp/src/jarvis/memory/semantic.py (initialize ChromaDB client and collection)
-- [ ] T020 Implement add_semantic_entry(), search_semantic() with filters (time, file, type) in jarvis-mcp/src/jarvis/memory/semantic.py
-- [ ] T021 Implement SnapshotMemory class in jarvis-mcp/src/jarvis/memory/snapshot.py (save/load code diffs to/from .jarvis/snapshots/)
-- [ ] T022 [P] Create MCP client wrapper in jarvis-cli/src/api/mcp-client.ts (connect to MCP server, call tools, handle responses)
-- [ ] T023 [P] Create CLI output formatter in jarvis-cli/src/utils/output.ts (colorized output, JSON support, --quiet flag, JARVIS persona)
-- [ ] T024 [P] Create CLI settings manager in jarvis-cli/src/config/settings.ts (load config, validate, provide defaults)
+- [x] T011 Implement Configuration class in jarvis-mcp/src/jarvis/utils/config.py (load global ~/.jarvis/config.json, merge with project .jarvis/config.json)
+- [x] T012 Implement get_config(), set_config(), validate_config() methods in jarvis-mcp/src/jarvis/utils/config.py
+- [x] T013 Implement project_id generation (SHA256 hash of absolute path) in jarvis-mcp/src/jarvis/utils/config.py
+- [x] T014 [P] Implement JARVIS persona formatter in jarvis-mcp/src/jarvis/utils/persona.py (format_response(), address_as_sir(), ensure_english())
+- [x] T015 [P] Implement embeddings wrapper in jarvis-mcp/src/jarvis/utils/embeddings.py (load bge-large-en-v1.5 model, generate_embedding(), batch_embed())
+- [x] T016 Create SQLite schema for MemoryEntry, ProjectContext tables in jarvis-mcp/src/jarvis/memory/schema.sql
+- [x] T017 Implement FactualMemory class in jarvis-mcp/src/jarvis/memory/factual.py (initialize SQLite, CRUD operations for MemoryEntry)
+- [x] T018 Implement create_entry(), get_entry(), query_entries() methods in jarvis-mcp/src/jarvis/memory/factual.py
+- [x] T019 Implement SemanticMemory class in jarvis-mcp/src/jarvis/memory/semantic.py (initialize ChromaDB client and collection)
+- [x] T020 Implement add_semantic_entry(), search_semantic() with filters (time, file, type) in jarvis-mcp/src/jarvis/memory/semantic.py
+- [x] T021 Implement SnapshotMemory class in jarvis-mcp/src/jarvis/memory/snapshot.py (save/load code diffs to/from .jarvis/snapshots/)
+- [x] T022 [P] Create MCP client wrapper in jarvis-cli/src/api/mcp-client.ts (connect to MCP server, call tools, handle responses)
+- [x] T023 [P] Create CLI output formatter in jarvis-cli/src/utils/output.ts (colorized output, JSON support, --quiet flag, JARVIS persona)
+- [x] T024 [P] Create CLI settings manager in jarvis-cli/src/config/settings.ts (load config, validate, provide defaults)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
