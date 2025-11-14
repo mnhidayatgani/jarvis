@@ -170,14 +170,14 @@
 
 ### Implementation for User Story 5
 
-- [ ] T073 [US5] Enhance recall_context tool with time-based filtering (parse "last week", "since March" queries)
-- [ ] T074 [US5] Add file-based filtering to recall_context (search within specific files/directories)
-- [ ] T075 [US5] Add type-based filtering to recall_context (filter by decision, bug, architecture, note)
-- [ ] T076 [US5] Implement relevance score calculation (cosine similarity of embeddings) in recall_context
-- [ ] T077 [US5] Return context snippets (not full content) in search results for quick preview
-- [ ] T078 [US5] Implement "no results" handling (suggest alternative queries, offer keyword fallback)
-- [ ] T079 [US5] Add drill-down support in jarvis-cli recall.ts (click result ID to see full content)
-- [ ] T080 [US5] Optimize ChromaDB query performance (use HNSW index, batch queries)
+- [x] T073 [US5] Enhance recall_context tool with time-based filtering (parse "last week", "since March" queries)
+- [x] T074 [US5] Add file-based filtering to recall_context (search within specific files/directories)
+- [x] T075 [US5] Add type-based filtering to recall_context (filter by decision, bug, architecture, note)
+- [x] T076 [US5] Implement relevance score calculation (cosine similarity of embeddings) in recall_context
+- [x] T077 [US5] Return context snippets (not full content) in search results for quick preview
+- [x] T078 [US5] Implement "no results" handling (suggest alternative queries, offer keyword fallback)
+- [x] T079 [US5] Add drill-down support in jarvis-cli recall.ts (click result ID to see full content)
+- [x] T080 [US5] Optimize ChromaDB query performance (use HNSW index, batch queries)
 
 **Checkpoint**: User Story 5 complete - Advanced semantic search functional
 
@@ -191,13 +191,13 @@
 
 ### Implementation for User Story 6
 
-- [ ] T081 [P] [US6] Create persona templates in jarvis-mcp/src/jarvis/utils/persona.py (success, error, progress messages)
-- [ ] T082 [P] [US6] Implement language detection in persona.py (reject non-English, respond in English anyway)
-- [ ] T083 [US6] Apply persona formatter to all MCP tool responses in jarvis-mcp/src/jarvis/mcp/tools.py
-- [ ] T084 [US6] Apply persona formatter to all CLI outputs in jarvis-cli/src/utils/output.ts
-- [ ] T085 [US6] Add --verbose flag handling (show details only when requested, default concise)
-- [ ] T086 [US6] Implement calm error messaging (never panic, always provide next steps)
-- [ ] T087 [US6] Add subtle dry humor option (configurable, off by default)
+- [x] T081 [P] [US6] Create persona templates in jarvis-mcp/src/jarvis/utils/persona.py (success, error, progress messages)
+- [x] T082 [P] [US6] Implement language detection in persona.py (reject non-English, respond in English anyway)
+- [x] T083 [US6] Apply persona formatter to all MCP tool responses in jarvis-mcp/src/jarvis/mcp/tools.py
+- [x] T084 [US6] Apply persona formatter to all CLI outputs in jarvis-cli/src/utils/output.ts
+- [x] T085 [US6] Add --verbose flag handling (show details only when requested, default concise)
+- [x] T086 [US6] Implement calm error messaging (never panic, always provide next steps)
+- [x] T087 [US6] Add subtle dry humor option (configurable, off by default)
 
 **Checkpoint**: User Story 6 complete - JARVIS persona consistent across all interactions
 
@@ -211,19 +211,19 @@
 
 ### Implementation for User Story 7
 
-- [ ] T088 [P] [US7] Implement checkpoint command handler in jarvis-cli/src/commands/rollback.ts (manual checkpoint creation)
-- [ ] T089 [P] [US7] Implement rollback command handler in jarvis-cli/src/commands/rollback.ts (undo last N operations)
-- [ ] T090 [US7] In jarvis-mcp, implement MCP tool create_checkpoint in src/jarvis/mcp/tools.py (create git stash with message)
-- [ ] T091 [US7] Store Checkpoint entity (git_stash_ref, timestamp, reason, files_affected) in create_checkpoint
-- [ ] T092 [US7] Create memory snapshot (current MemoryEntry state) and link to Checkpoint
-- [ ] T093 [US7] Implement automatic checkpoint detection (>5 files, delete, config change, major refactor)
-- [ ] T094 [US7] In jarvis-mcp, implement MCP tool rollback in src/jarvis/mcp/tools.py (pop git stash)
-- [ ] T095 [US7] Restore memory state from memory_snapshot_id in rollback tool
-- [ ] T096 [US7] Mark Checkpoint as Applied after successful rollback
-- [ ] T097 [US7] Implement rollback preview (show what will be undone before confirming)
-- [ ] T098 [US7] Ensure atomic rollback (all files or none, never partial)
-- [ ] T099 [US7] Implement auto-rollback on validation failure (after 3 fix attempts)
-- [ ] T100 [US7] Implement checkpoint cleanup (delete checkpoints older than 30 days)
+- [x] T088 [P] [US7] Implement checkpoint command handler in jarvis-cli/src/commands/rollback.ts (manual checkpoint creation)
+- [x] T089 [P] [US7] Implement rollback command handler in jarvis-cli/src/commands/rollback.ts (undo last N operations)
+- [x] T090 [US7] In jarvis-mcp, implement MCP tool create_checkpoint in src/jarvis/mcp/tools.py (create git stash with message)
+- [x] T091 [US7] Store Checkpoint entity (git_stash_ref, timestamp, reason, files_affected) in create_checkpoint
+- [x] T092 [US7] Create memory snapshot (current MemoryEntry state) and link to Checkpoint
+- [x] T093 [US7] Implement automatic checkpoint detection (>5 files, delete, config change, major refactor)
+- [x] T094 [US7] In jarvis-mcp, implement MCP tool rollback in src/jarvis/mcp/tools.py (pop git stash)
+- [x] T095 [US7] Restore memory state from memory_snapshot_id in rollback tool
+- [x] T096 [US7] Mark Checkpoint as Applied after successful rollback
+- [x] T097 [US7] Implement rollback preview (show what will be undone before confirming)
+- [x] T098 [US7] Ensure atomic rollback (all files or none, never partial)
+- [x] T099 [US7] Implement auto-rollback on validation failure (after 3 fix attempts)
+- [x] T100 [US7] Implement checkpoint cleanup (delete checkpoints older than 30 days)
 
 **Checkpoint**: User Story 7 complete - Safety system with checkpoints and rollback functional
 
@@ -237,17 +237,17 @@
 
 ### Implementation for User Story 8
 
-- [ ] T101 [US8] Create MCP server bootstrap in jarvis-mcp/src/jarvis/mcp/server.py (using official MCP Python package)
-- [ ] T102 [US8] Register all 7 MCP tools (remember_context, recall_context, analyze_codebase, validate_changes, get_architecture, create_checkpoint, rollback)
-- [ ] T103 [US8] Implement MCP tool validate_changes in jarvis-mcp/src/jarvis/mcp/tools.py (run syntax, lint, test, build checks)
-- [ ] T104 [US8] Implement MCP tool get_architecture in jarvis-mcp/src/jarvis/mcp/tools.py (return file_structure_map from ProjectContext)
-- [ ] T105 [US8] Implement MCP tool switch_project in jarvis-mcp/src/jarvis/mcp/tools.py (change active project_id)
-- [ ] T106 [US8] Add server lifecycle management (start, stop, health check) in server.py
-- [ ] T107 [US8] Configure server port (default 3000, fallback 3001-3010 if in use) in server.py
-- [ ] T108 [US8] Implement request logging (all tool calls, errors, performance metrics) in server.py
-- [ ] T109 [US8] Handle multiple concurrent agent connections (async request handling)
-- [ ] T110 [US8] Add graceful shutdown (finish pending requests, close DB connections)
-- [ ] T111 [US8] Create systemd service file for auto-start on boot (optional)
+- [x] T101 [US8] Create MCP server bootstrap in jarvis-mcp/src/jarvis/mcp/server.py (using official MCP Python package)
+- [x] T102 [US8] Register all 7 MCP tools (remember_context, recall_context, analyze_codebase, validate_changes, get_architecture, create_checkpoint, rollback)
+- [x] T103 [US8] Implement MCP tool validate_changes in jarvis-mcp/src/jarvis/mcp/tools.py (run syntax, lint, test, build checks)
+- [x] T104 [US8] Implement MCP tool get_architecture in jarvis-mcp/src/jarvis/mcp/tools.py (return file_structure_map from ProjectContext)
+- [x] T105 [US8] Implement MCP tool switch_project in jarvis-mcp/src/jarvis/mcp/tools.py (change active project_id)
+- [x] T106 [US8] Add server lifecycle management (start, stop, health check) in server.py
+- [x] T107 [US8] Configure server port (default 3000, fallback 3001-3010 if in use) in server.py
+- [x] T108 [US8] Implement request logging (all tool calls, errors, performance metrics) in server.py
+- [x] T109 [US8] Handle multiple concurrent agent connections (async request handling)
+- [x] T110 [US8] Add graceful shutdown (finish pending requests, close DB connections)
+- [x] T111 [US8] Create systemd service file for auto-start on boot (optional)
 
 **Checkpoint**: User Story 8 complete - MCP server exposing all tools for AI agents
 
