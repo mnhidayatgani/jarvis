@@ -45,15 +45,15 @@ export async function handleRecallCommand(
     }
 
     // Format results
-    if (!result.results || result.results.length === 0) {
+    if (!result.data?.results || result.data.results.length === 0) {
       output.info('No memories found matching your query', false)
       return
     }
 
-    output.success(`Found ${result.results.length} ${result.results.length === 1 ? 'memory' : 'memories'}`)
+    output.success(`Found ${result.data.results.length} ${result.data.results.length === 1 ? 'memory' : 'memories'}`)
 
     // Display results
-    for (const item of result.results) {
+    for (const item of result.data.results) {
       console.log()
       console.log(`📝 ${item.content}`)
 

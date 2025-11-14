@@ -58,11 +58,11 @@ export async function handleRememberCommand(
       console.log(JSON.stringify(result, null, 2))
     } else {
       output.success('Memory stored')
-      if (options.verbose && result.memory_id) {
-        output.info(`ID: ${result.memory_id.substring(0, 16)}...`, false)
-        output.info(`Type: ${result.type || 'decision'}`, false)
-        if (result.timestamp) {
-          output.info(`Time: ${new Date(result.timestamp).toLocaleString()}`, false)
+      if (options.verbose && result.data?.memory_id) {
+        output.info(`ID: ${result.data.memory_id.substring(0, 16)}...`, false)
+        output.info(`Type: ${result.data.type || 'decision'}`, false)
+        if (result.data.timestamp) {
+          output.info(`Time: ${new Date(result.data.timestamp).toLocaleString()}`, false)
         }
       }
     }

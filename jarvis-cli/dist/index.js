@@ -601,11 +601,11 @@ async function handleRememberCommand(args, options = {}) {
       console.log(JSON.stringify(result, null, 2));
     } else {
       output.success("Memory stored");
-      if (options.verbose && result.memory_id) {
-        output.info(`ID: ${result.memory_id.substring(0, 16)}...`, false);
-        output.info(`Type: ${result.type || "decision"}`, false);
-        if (result.timestamp) {
-          output.info(`Time: ${new Date(result.timestamp).toLocaleString()}`, false);
+      if (options.verbose && result.data?.memory_id) {
+        output.info(`ID: ${result.data.memory_id.substring(0, 16)}...`, false);
+        output.info(`Type: ${result.data.type || "decision"}`, false);
+        if (result.data.timestamp) {
+          output.info(`Time: ${new Date(result.data.timestamp).toLocaleString()}`, false);
         }
       }
     }
@@ -663,12 +663,12 @@ async function handleRecallCommand(query, options = {}) {
       console.log(JSON.stringify(result, null, 2));
       return;
     }
-    if (!result.results || result.results.length === 0) {
+    if (!result.data?.results || result.data.results.length === 0) {
       output.info("No memories found matching your query", false);
       return;
     }
-    output.success(`Found ${result.results.length} ${result.results.length === 1 ? "memory" : "memories"}`);
-    for (const item of result.results) {
+    output.success(`Found ${result.data.results.length} ${result.data.results.length === 1 ? "memory" : "memories"}`);
+    for (const item of result.data.results) {
       console.log();
       console.log(`\u{1F4DD} ${item.content}`);
       if (options.verbose) {
