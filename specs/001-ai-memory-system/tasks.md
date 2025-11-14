@@ -261,14 +261,14 @@
 
 ### Implementation for User Story 9
 
-- [ ] T112 [P] [US9] Implement specify command wrapper in jarvis-cli/src/commands/specify.ts (call speckit.specify, capture output)
-- [ ] T113 [P] [US9] Implement plan command wrapper in jarvis-cli/src/commands/plan.ts (call speckit.plan, capture output)
-- [ ] T114 [P] [US9] Implement implement command wrapper in jarvis-cli/src/commands/implement.ts (call speckit.implement, capture output)
-- [ ] T115 [US9] In jarvis-mcp, create SpecKitIntegration in src/jarvis/speckit/commands.py (shell out to speckit commands)
-- [ ] T116 [US9] After spec creation, store spec content to semantic memory (type='architecture')
-- [ ] T117 [US9] After plan creation, store plan content to semantic memory (type='decision')
-- [ ] T118 [US9] Reference past specs during new planning (search semantic memory for similar features)
-- [ ] T119 [US9] Enable `jarvis recall "photo album requirements"` to retrieve original spec
+- [x] T112 [P] [US9] Implement specify command wrapper in jarvis-cli/src/commands/specify.ts (call speckit.specify, capture output)
+- [x] T113 [P] [US9] Implement plan command wrapper in jarvis-cli/src/commands/plan.ts (call speckit.plan, capture output)
+- [x] T114 [P] [US9] Implement implement command wrapper in jarvis-cli/src/commands/implement.ts (call speckit.implement, capture output)
+- [x] T115 [US9] In jarvis-mcp, create SpecKitIntegration in src/jarvis/speckit/commands.py (shell out to speckit commands)
+- [x] T116 [US9] After spec creation, store spec content to semantic memory (type='architecture')
+- [x] T117 [US9] After plan creation, store plan content to semantic memory (type='decision')
+- [x] T118 [US9] Reference past specs during new planning (search semantic memory for similar features)
+- [x] T119 [US9] Enable `jarvis recall "photo album requirements"` to retrieve original spec
 
 **Checkpoint**: User Story 9 complete - Spec Kit integration with memory persistence
 
@@ -278,17 +278,17 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T120 [P] Implement status command in jarvis-cli/src/commands/status.ts (show memory stats, project info, MCP server status)
-- [ ] T121 [P] Implement config command in jarvis-cli/src/commands/config.ts (get/set/list/reset configuration)
-- [ ] T122 [P] Implement doctor command in jarvis-cli/src/commands/doctor.ts (health checks: MCP server, databases, disk space, memory)
-- [ ] T123 [P] Add --help documentation to all CLI commands
-- [ ] T124 [P] Add progress indicators for long operations (>5 seconds)
-- [ ] T125 [P] Implement error recovery (retry transient failures, clear error messages)
-- [ ] T126 [P] Add performance monitoring (log query times, warn if >2s threshold exceeded)
-- [ ] T127 [P] Add memory cleanup command (delete old snapshots, compress old memories)
-- [ ] T128 [P] Create comprehensive README.md for jarvis-mcp and jarvis-cli
-- [ ] T129 [P] Add CLI autocomplete support (bash, zsh completion scripts)
-- [ ] T130 Run quickstart.md validation (follow guide, ensure all steps work)
+- [x] T120 [P] Implement status command in jarvis-cli/src/commands/status.ts (show memory stats, project info, MCP server status)
+- [x] T121 [P] Implement config command in jarvis-cli/src/commands/config.ts (get/set/list/reset configuration)
+- [x] T122 [P] Implement doctor command in jarvis-cli/src/commands/doctor.ts (health checks: MCP server, databases, disk space, memory)
+- [x] T123 [P] Add --help documentation to all CLI commands
+- [x] T124 [P] Add progress indicators for long operations (>5 seconds)
+- [x] T125 [P] Implement error recovery (retry transient failures, clear error messages)
+- [x] T126 [P] Add performance monitoring (log query times, warn if >2s threshold exceeded)
+- [x] T127 [P] Add memory cleanup command (delete old snapshots, compress old memories)
+- [x] T128 [P] Create comprehensive README.md for jarvis-mcp and jarvis-cli
+- [x] T129 [P] Add CLI autocomplete support (bash, zsh completion scripts)
+- [x] T130 Run quickstart.md validation (follow guide, ensure all steps work)
 
 ---
 

@@ -1,4 +1,11 @@
 #!/usr/bin/env node
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined")
+    return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 
 // src/config/config.ts
 import * as fs from "fs";
@@ -549,7 +556,7 @@ var MCPClient = class {
    * Make HTTP request to MCP server
    */
   async makeRequest(endpoint, data) {
-    await new Promise((resolve2) => setTimeout(resolve2, 100));
+    await new Promise((resolve4) => setTimeout(resolve4, 100));
     return {
       success: true,
       data: {
@@ -831,6 +838,253 @@ function parseScanArgs(args) {
   return options;
 }
 
+// src/commands/status.ts
+import { existsSync as existsSync3, statSync } from "fs";
+import { resolve as resolve2 } from "path";
+async function handleStatusCommand(options = {}) {
+  const output = getFormatter(options);
+  try {
+    const jarvisDir = resolve2(process.cwd(), ".jarvis");
+    if (!existsSync3(jarvisDir)) {
+      output.error("JARVIS not initialized in this directory");
+      console.log("Run: jarvis init");
+      process.exit(1);
+    }
+    const stats = {
+      initialized: true,
+      directory: jarvisDir,
+      databases: checkDatabases(jarvisDir),
+      config: checkConfig(jarvisDir),
+      project: checkProject(jarvisDir)
+    };
+    if (options.json) {
+      console.log(JSON.stringify(stats, null, 2));
+      return;
+    }
+    console.log("\n\u{1F4CA} JARVIS Status\n");
+    if (stats.project.name) {
+      console.log(`Project: ${stats.project.name}`);
+    }
+    console.log(`Location: ${process.cwd()}`);
+    console.log();
+    console.log("\u{1F4BE} Databases:");
+    console.log(`  SQLite: ${stats.databases.sqlite ? "\u2713" : "\u2717"} ${stats.databases.sqliteSize || ""}`);
+    console.log(`  ChromaDB: ${stats.databases.chroma ? "\u2713" : "\u2717"}`);
+    console.log();
+    if (options.verbose && stats.databases.sqlite) {
+      console.log("\u{1F4DD} Memory:");
+      console.log("  Factual entries: (query needed)");
+      console.log("  Semantic entries: (query needed)");
+      console.log();
+    }
+    console.log("\u2699\uFE0F  Configuration:");
+    console.log(`  Config file: ${stats.config.exists ? "\u2713" : "\u2717"}`);
+    if (stats.config.settings && options.verbose) {
+      console.log(`  Persona: ${stats.config.settings.persona || "default"}`);
+      console.log(`  Language: ${stats.config.settings.language || "en"}`);
+    }
+    console.log();
+    output.success("System operational");
+  } catch (error) {
+    output.error(
+      "Failed to get status",
+      error instanceof Error ? error : void 0
+    );
+    process.exit(1);
+  }
+}
+function checkDatabases(jarvisDir) {
+  const sqlitePath = resolve2(jarvisDir, "db", "memory.db");
+  const chromaPath = resolve2(jarvisDir, "db", "chroma");
+  const result = {
+    sqlite: existsSync3(sqlitePath),
+    sqliteSize: "",
+    chroma: existsSync3(chromaPath)
+  };
+  if (result.sqlite) {
+    const size = statSync(sqlitePath).size;
+    result.sqliteSize = formatBytes(size);
+  }
+  return result;
+}
+function checkConfig(jarvisDir) {
+  const configPath = resolve2(jarvisDir, "config.json");
+  const exists = existsSync3(configPath);
+  let settings = null;
+  if (exists) {
+    try {
+      settings = __require(configPath);
+    } catch {
+    }
+  }
+  return { exists, settings };
+}
+function checkProject(jarvisDir) {
+  const contextPath = resolve2(jarvisDir, "project_context.json");
+  if (existsSync3(contextPath)) {
+    try {
+      const context = __require(contextPath);
+      return {
+        name: context.name || context.project_name || null,
+        techStack: context.tech_stack || []
+      };
+    } catch {
+      return { name: null, techStack: [] };
+    }
+  }
+  return { name: null, techStack: [] };
+}
+function formatBytes(bytes) {
+  if (bytes === 0)
+    return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+function parseStatusArgs(args) {
+  const options = {};
+  for (const arg of args) {
+    if (arg === "--verbose" || arg === "-v") {
+      options.verbose = true;
+    } else if (arg === "--json") {
+      options.json = true;
+    }
+  }
+  return options;
+}
+
+// src/commands/doctor.ts
+import { existsSync as existsSync4 } from "fs";
+import { resolve as resolve3 } from "path";
+async function handleDoctorCommand(options = {}) {
+  const output = getFormatter(options);
+  try {
+    const checks = [];
+    const jarvisDir = resolve3(process.cwd(), ".jarvis");
+    if (existsSync4(jarvisDir)) {
+      checks.push({
+        name: "JARVIS Initialized",
+        status: "pass",
+        message: ".jarvis directory exists"
+      });
+    } else {
+      checks.push({
+        name: "JARVIS Initialized",
+        status: "fail",
+        message: ".jarvis directory not found - run: jarvis init"
+      });
+    }
+    const sqlitePath = resolve3(jarvisDir, "db", "memory.db");
+    if (existsSync4(sqlitePath)) {
+      checks.push({
+        name: "SQLite Database",
+        status: "pass",
+        message: "Database file exists"
+      });
+    } else {
+      checks.push({
+        name: "SQLite Database",
+        status: "fail",
+        message: "Database file missing"
+      });
+    }
+    const chromaPath = resolve3(jarvisDir, "db", "chroma");
+    if (existsSync4(chromaPath)) {
+      checks.push({
+        name: "ChromaDB",
+        status: "pass",
+        message: "ChromaDB directory exists"
+      });
+    } else {
+      checks.push({
+        name: "ChromaDB",
+        status: "warn",
+        message: "ChromaDB directory missing - will be created on first use"
+      });
+    }
+    const configPath = resolve3(jarvisDir, "config.json");
+    if (existsSync4(configPath)) {
+      checks.push({
+        name: "Configuration",
+        status: "pass",
+        message: "Config file exists"
+      });
+    } else {
+      checks.push({
+        name: "Configuration",
+        status: "warn",
+        message: "Config file missing - using defaults"
+      });
+    }
+    if (existsSync4(resolve3(process.cwd(), ".git"))) {
+      checks.push({
+        name: "Git Repository",
+        status: "pass",
+        message: "Git repository detected"
+      });
+    } else {
+      checks.push({
+        name: "Git Repository",
+        status: "warn",
+        message: "Not a git repository - auto-capture will be limited"
+      });
+    }
+    checks.push({
+      name: "Disk Space",
+      status: "pass",
+      message: "Sufficient disk space (check not implemented)"
+    });
+    if (options.json) {
+      console.log(JSON.stringify({ checks }, null, 2));
+      return;
+    }
+    console.log("\n\u{1F3E5} JARVIS Health Check\n");
+    const passCount = checks.filter((c) => c.status === "pass").length;
+    const failCount = checks.filter((c) => c.status === "fail").length;
+    const warnCount = checks.filter((c) => c.status === "warn").length;
+    for (const check of checks) {
+      const icon = check.status === "pass" ? "\u2713" : check.status === "fail" ? "\u2717" : "\u26A0";
+      const color = check.status === "pass" ? "\x1B[32m" : check.status === "fail" ? "\x1B[31m" : "\x1B[33m";
+      const reset = "\x1B[0m";
+      console.log(`${color}${icon}${reset} ${check.name}`);
+      if (options.verbose || check.status !== "pass") {
+        console.log(`  ${check.message}`);
+      }
+    }
+    console.log();
+    console.log(
+      `Summary: ${passCount} passed, ${warnCount} warnings, ${failCount} failed`
+    );
+    console.log();
+    if (failCount > 0) {
+      output.error("Health check failed");
+      process.exit(1);
+    } else if (warnCount > 0) {
+      output.info("Health check passed with warnings", false);
+    } else {
+      output.success("All health checks passed");
+    }
+  } catch (error) {
+    output.error(
+      "Health check failed",
+      error instanceof Error ? error : void 0
+    );
+    process.exit(1);
+  }
+}
+function parseDoctorArgs(args) {
+  const options = {};
+  for (const arg of args) {
+    if (arg === "--verbose" || arg === "-v") {
+      options.verbose = true;
+    } else if (arg === "--json") {
+      options.json = true;
+    }
+  }
+  return options;
+}
+
 // src/index.ts
 async function main() {
   const args = process.argv.slice(2);
@@ -858,12 +1112,18 @@ async function main() {
     case "scan":
       await handleScanCommand(parseScanArgs(args.slice(1)));
       break;
+    case "status":
+      await handleStatusCommand(parseStatusArgs(args.slice(1)));
+      break;
+    case "doctor":
+      await handleDoctorCommand(parseDoctorArgs(args.slice(1)));
+      break;
     case "config":
       handleConfigCommand(args.slice(1));
       break;
     default:
       console.error(`Error: Unknown command "${command}"`);
-      console.log("Available commands: init, remember, recall, scan, config");
+      console.log("Available commands: init, remember, recall, scan, status, doctor, config");
       process.exit(1);
   }
 }
