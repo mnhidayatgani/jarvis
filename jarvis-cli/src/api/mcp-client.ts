@@ -47,30 +47,38 @@ export class MCPClient {
   /**
    * Remember context (store memory)
    */
-  async rememberContext(
-    content: string,
-    type: string = 'note',
-    metadata: Record<string, any> = {},
-  ): Promise<MCPResponse> {
+  async rememberContext(params: {
+    content: string
+    type?: string
+    tags?: string[]
+    file_path?: string
+    metadata?: Record<string, any>
+  }): Promise<MCPResponse> {
     return this.callTool('remember_context', {
-      content,
-      type,
-      metadata,
+      content: params.content,
+      type: params.type || 'decision',
+      tags: params.tags || [],
+      file_path: params.file_path,
+      metadata: params.metadata || {},
     })
   }
 
   /**
    * Recall context (search memory)
    */
-  async recallContext(
-    query: string,
-    filters: Record<string, any> = {},
-    limit: number = 10,
-  ): Promise<MCPResponse> {
+  async recallContext(params: {
+    query: string
+    type_filter?: string
+    file_filter?: string
+    since?: string
+    limit?: number
+  }): Promise<MCPResponse> {
     return this.callTool('recall_context', {
-      query,
-      filters,
-      limit,
+      query: params.query,
+      type_filter: params.type_filter,
+      file_filter: params.file_filter,
+      since: params.since,
+      limit: params.limit || 10,
     })
   }
 

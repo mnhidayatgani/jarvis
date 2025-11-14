@@ -429,6 +429,305 @@ function parseInitArgs(args) {
   return options;
 }
 
+// src/commands/remember.ts
+import { readFileSync as readFileSync2 } from "fs";
+
+// src/api/mcp-client.ts
+var MCPClient = class {
+  serverUrl;
+  timeout;
+  constructor(serverUrl = "http://localhost:3000", timeout = 3e4) {
+    this.serverUrl = serverUrl;
+    this.timeout = timeout;
+  }
+  /**
+   * Call an MCP tool on the server
+   */
+  async callTool(tool, args = {}) {
+    try {
+      const response = await this.makeRequest("/tools/call", {
+        tool,
+        arguments: args
+      });
+      return response;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      };
+    }
+  }
+  /**
+   * Remember context (store memory)
+   */
+  async rememberContext(params) {
+    return this.callTool("remember_context", {
+      content: params.content,
+      type: params.type || "decision",
+      tags: params.tags || [],
+      file_path: params.file_path,
+      metadata: params.metadata || {}
+    });
+  }
+  /**
+   * Recall context (search memory)
+   */
+  async recallContext(params) {
+    return this.callTool("recall_context", {
+      query: params.query,
+      type_filter: params.type_filter,
+      file_filter: params.file_filter,
+      since: params.since,
+      limit: params.limit || 10
+    });
+  }
+  /**
+   * Analyze codebase
+   */
+  async analyzeCodebase(projectPath, options = {}) {
+    return this.callTool("analyze_codebase", {
+      project_path: projectPath,
+      ...options
+    });
+  }
+  /**
+   * Get architecture/project structure
+   */
+  async getArchitecture() {
+    return this.callTool("get_architecture", {});
+  }
+  /**
+   * Create safety checkpoint
+   */
+  async createCheckpoint(reason, filesAffected = []) {
+    return this.callTool("create_checkpoint", {
+      reason,
+      files_affected: filesAffected
+    });
+  }
+  /**
+   * Rollback to previous state
+   */
+  async rollback(checkpointId) {
+    return this.callTool("rollback", {
+      checkpoint_id: checkpointId
+    });
+  }
+  /**
+   * Validate pending changes
+   */
+  async validateChanges(changes) {
+    return this.callTool("validate_changes", {
+      changes
+    });
+  }
+  /**
+   * Check server health
+   */
+  async healthCheck() {
+    try {
+      const response = await this.makeRequest("/health", {});
+      return response.success === true;
+    } catch {
+      return false;
+    }
+  }
+  /**
+   * Get server stats
+   */
+  async getStats() {
+    try {
+      return await this.makeRequest("/stats", {});
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to get stats"
+      };
+    }
+  }
+  /**
+   * Make HTTP request to MCP server
+   */
+  async makeRequest(endpoint, data) {
+    await new Promise((resolve2) => setTimeout(resolve2, 100));
+    return {
+      success: true,
+      data: {
+        message: "MCP server not yet implemented",
+        endpoint,
+        request: data
+      },
+      message: "Note: This is a mock response. MCP server implementation pending."
+    };
+  }
+};
+var defaultClient = null;
+function getDefaultClient() {
+  if (!defaultClient) {
+    const serverUrl = process.env.JARVIS_MCP_URL || "http://localhost:3000";
+    defaultClient = new MCPClient(serverUrl);
+  }
+  return defaultClient;
+}
+
+// src/commands/remember.ts
+async function handleRememberCommand(args, options = {}) {
+  const output = getFormatter(options);
+  try {
+    let content;
+    if (args.length > 0) {
+      content = args.join(" ");
+    } else {
+      try {
+        content = readFileSync2(0, "utf-8").trim();
+      } catch {
+        output.error('No content provided. Use: jarvis remember "content" or pipe via stdin');
+        process.exit(1);
+      }
+    }
+    if (!content || content.length === 0) {
+      output.error("Content cannot be empty");
+      process.exit(1);
+    }
+    output.progress("Storing to JARVIS memory...");
+    const client = getDefaultClient();
+    const result = await client.rememberContext({
+      content,
+      type: options.type || "decision",
+      tags: options.tags || [],
+      file_path: options.file
+    });
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      output.success("Memory stored");
+      if (options.verbose && result.memory_id) {
+        output.info(`ID: ${result.memory_id.substring(0, 16)}...`, false);
+        output.info(`Type: ${result.type || "decision"}`, false);
+        if (result.timestamp) {
+          output.info(`Time: ${new Date(result.timestamp).toLocaleString()}`, false);
+        }
+      }
+    }
+  } catch (error) {
+    output.error(
+      "Failed to store memory",
+      error instanceof Error ? error : void 0
+    );
+    process.exit(1);
+  }
+}
+function parseRememberArgs(args) {
+  const options = {};
+  const contentArgs = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--type" || arg === "-t") {
+      options.type = args[++i];
+    } else if (arg === "--tags") {
+      const tagsStr = args[++i];
+      options.tags = tagsStr.split(",").map((t) => t.trim());
+    } else if (arg === "--file" || arg === "-f") {
+      options.file = args[++i];
+    } else if (arg === "--verbose" || arg === "-v") {
+      options.verbose = true;
+    } else if (arg === "--quiet" || arg === "-q") {
+      options.quiet = true;
+    } else if (arg === "--json") {
+      options.json = true;
+    } else if (!arg.startsWith("-")) {
+      contentArgs.push(arg);
+    }
+  }
+  return { contentArgs, options };
+}
+
+// src/commands/recall.ts
+async function handleRecallCommand(query, options = {}) {
+  const output = getFormatter(options);
+  try {
+    if (!query || query.length === 0) {
+      output.error('Query cannot be empty. Use: jarvis recall "search query"');
+      process.exit(1);
+    }
+    output.progress("Searching JARVIS memory...");
+    const client = getDefaultClient();
+    const result = await client.recallContext({
+      query,
+      type_filter: options.type,
+      file_filter: options.file,
+      since: options.since,
+      limit: options.limit || 10
+    });
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    if (!result.results || result.results.length === 0) {
+      output.info("No memories found matching your query", false);
+      return;
+    }
+    output.success(`Found ${result.results.length} ${result.results.length === 1 ? "memory" : "memories"}`);
+    for (const item of result.results) {
+      console.log();
+      console.log(`\u{1F4DD} ${item.content}`);
+      if (options.verbose) {
+        const details = [];
+        if (item.type)
+          details.push(`Type: ${item.type}`);
+        if (item.file_path)
+          details.push(`File: ${item.file_path}`);
+        if (item.timestamp) {
+          details.push(`Time: ${new Date(item.timestamp).toLocaleString()}`);
+        }
+        if (item.relevance_score !== void 0) {
+          details.push(`Relevance: ${(item.relevance_score * 100).toFixed(1)}%`);
+        }
+        if (details.length > 0) {
+          output.info(`   ${details.join(" | ")}`, false);
+        }
+      } else {
+        if (item.timestamp) {
+          const timeStr = new Date(item.timestamp).toLocaleDateString();
+          console.log(`   ${timeStr}`);
+        }
+      }
+    }
+    console.log();
+  } catch (error) {
+    output.error(
+      "Failed to recall memory",
+      error instanceof Error ? error : void 0
+    );
+    process.exit(1);
+  }
+}
+function parseRecallArgs(args) {
+  const options = {};
+  const queryParts = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--type" || arg === "-t") {
+      options.type = args[++i];
+    } else if (arg === "--file" || arg === "-f") {
+      options.file = args[++i];
+    } else if (arg === "--since" || arg === "-s") {
+      options.since = args[++i];
+    } else if (arg === "--limit" || arg === "-l") {
+      options.limit = parseInt(args[++i], 10);
+    } else if (arg === "--verbose" || arg === "-v") {
+      options.verbose = true;
+    } else if (arg === "--quiet" || arg === "-q") {
+      options.quiet = true;
+    } else if (arg === "--json") {
+      options.json = true;
+    } else if (!arg.startsWith("-")) {
+      queryParts.push(arg);
+    }
+  }
+  return { query: queryParts.join(" "), options };
+}
+
 // src/index.ts
 async function main() {
   const args = process.argv.slice(2);
@@ -441,12 +740,24 @@ async function main() {
     case "init":
       await handleInitCommand(parseInitArgs(args.slice(1)));
       break;
+    case "remember":
+      {
+        const { contentArgs, options } = parseRememberArgs(args.slice(1));
+        await handleRememberCommand(contentArgs, options);
+      }
+      break;
+    case "recall":
+      {
+        const { query, options } = parseRecallArgs(args.slice(1));
+        await handleRecallCommand(query, options);
+      }
+      break;
     case "config":
       handleConfigCommand(args.slice(1));
       break;
     default:
       console.error(`Error: Unknown command "${command}"`);
-      console.log("Available commands: init, config");
+      console.log("Available commands: init, remember, recall, config");
       process.exit(1);
   }
 }

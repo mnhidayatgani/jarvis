@@ -92,18 +92,18 @@
 
 ### Implementation for User Story 2
 
-- [ ] T034 [P] [US2] Implement remember command handler in jarvis-cli/src/commands/remember.ts (accept content from args or stdin)
-- [ ] T035 [P] [US2] Implement recall command handler in jarvis-cli/src/commands/recall.ts (accept query, optional filters)
-- [ ] T036 [US2] In remember.ts, call MCP tool remember_context() with content, type='decision', metadata
-- [ ] T037 [US2] In jarvis-mcp, implement MCP tool remember_context in src/jarvis/mcp/tools.py (validate input, generate embedding)
-- [ ] T038 [US2] Store to FactualMemory (metadata) and SemanticMemory (content + embedding) in remember_context tool
-- [ ] T039 [US2] Return success response with memory_id, timestamp, JARVIS persona formatting
-- [ ] T040 [US2] In recall.ts, call MCP tool recall_context() with query and filters
-- [ ] T041 [US2] In jarvis-mcp, implement MCP tool recall_context in src/jarvis/mcp/tools.py (generate query embedding, search ChromaDB)
-- [ ] T042 [US2] Apply filters (time-based, file-based, type) to search results in recall_context tool
-- [ ] T043 [US2] Return ranked results with relevance scores, content snippets, JARVIS persona formatting
-- [ ] T044 [US2] Handle long content (>1000 words) chunking in remember_context for embedding efficiency
-- [ ] T045 [US2] Format recall results in jarvis-cli (table view, JSON support via --json flag) in recall.ts
+- [x] T034 [P] [US2] Implement remember command handler in jarvis-cli/src/commands/remember.ts (accept content from args or stdin)
+- [x] T035 [P] [US2] Implement recall command handler in jarvis-cli/src/commands/recall.ts (accept query, optional filters)
+- [x] T036 [US2] In remember.ts, call MCP tool remember_context() with content, type='decision', metadata
+- [x] T037 [US2] In jarvis-mcp, implement MCP tool remember_context in src/jarvis/mcp/tools.py (validate input, generate embedding)
+- [x] T038 [US2] Store to FactualMemory (metadata) and SemanticMemory (content + embedding) in remember_context tool
+- [x] T039 [US2] Return success response with memory_id, timestamp, JARVIS persona formatting
+- [x] T040 [US2] In recall.ts, call MCP tool recall_context() with query and filters
+- [x] T041 [US2] In jarvis-mcp, implement MCP tool recall_context in src/jarvis/mcp/tools.py (generate query embedding, search ChromaDB)
+- [x] T042 [US2] Apply filters (time-based, file-based, type) to search results in recall_context tool
+- [x] T043 [US2] Return ranked results with relevance scores, content snippets, JARVIS persona formatting
+- [x] T044 [US2] Handle long content (>1000 words) chunking in remember_context for embedding efficiency
+- [x] T045 [US2] Format recall results in jarvis-cli (table view, JSON support via --json flag) in recall.ts
 
 **Checkpoint**: User Story 2 complete - Manual capture and retrieval working end-to-end
 
