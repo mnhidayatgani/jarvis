@@ -4,9 +4,8 @@ Stores content embeddings for semantic search and similarity matching.
 """
 
 import time
-import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import chromadb
 from chromadb.config import Settings
@@ -52,7 +51,7 @@ class SemanticMemory:
         self,
         entry_id: str,
         content: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Add entry to semantic memory.
 
@@ -84,8 +83,8 @@ class SemanticMemory:
         self,
         query: str,
         n_results: int = 10,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
+        filters: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """Search semantic memory with natural language query.
 
         Args:
@@ -126,7 +125,7 @@ class SemanticMemory:
 
         return formatted_results
 
-    def _build_where_clause(self, filters: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_where_clause(self, filters: dict[str, Any]) -> dict[str, Any]:
         """Build ChromaDB where clause from filters.
 
         Args:
@@ -164,8 +163,8 @@ class SemanticMemory:
     def update_entry(
         self,
         entry_id: str,
-        content: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        content: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Update entry in semantic memory.
 
@@ -185,7 +184,7 @@ class SemanticMemory:
                 return False
 
             # Prepare update
-            update_params: Dict[str, Any] = {"ids": [entry_id]}
+            update_params: dict[str, Any] = {"ids": [entry_id]}
 
             # Update content and embedding if content provided
             if content is not None:
@@ -224,7 +223,7 @@ class SemanticMemory:
         except Exception:
             return False
 
-    def get_entry(self, entry_id: str) -> Optional[Dict[str, Any]]:
+    def get_entry(self, entry_id: str) -> dict[str, Any] | None:
         """Get entry from semantic memory.
 
         Args:
@@ -244,7 +243,7 @@ class SemanticMemory:
 
         return None
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get semantic memory statistics.
 
         Returns:

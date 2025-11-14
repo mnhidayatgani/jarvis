@@ -3,7 +3,6 @@
 Uses bge-large-en-v1.5 model for generating text embeddings.
 """
 
-from typing import List, Union
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -22,7 +21,7 @@ class EmbeddingsWrapper:
             model_name: Name of the sentence-transformers model to use.
         """
         self.model_name = model_name
-        self._model: Union[SentenceTransformer, None] = None
+        self._model: SentenceTransformer | None = None
 
     def _load_model(self) -> SentenceTransformer:
         """Lazy load the embeddings model.
@@ -34,7 +33,7 @@ class EmbeddingsWrapper:
             self._model = SentenceTransformer(self.model_name)
         return self._model
 
-    def generate_embedding(self, text: str) -> List[float]:
+    def generate_embedding(self, text: str) -> list[float]:
         """Generate embedding for a single text.
 
         Args:
@@ -52,7 +51,7 @@ class EmbeddingsWrapper:
 
         return list(embedding)
 
-    def batch_embed(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
+    def batch_embed(self, texts: list[str], batch_size: int = 32) -> list[list[float]]:
         """Generate embeddings for multiple texts in batches.
 
         Args:
@@ -84,7 +83,7 @@ class EmbeddingsWrapper:
         """
         return self.EMBEDDING_DIM
 
-    def chunk_text(self, text: str, max_words: int = 1000, overlap: int = 100) -> List[str]:
+    def chunk_text(self, text: str, max_words: int = 1000, overlap: int = 100) -> list[str]:
         """Chunk long text into smaller pieces for embedding.
 
         Args:
@@ -117,7 +116,7 @@ class EmbeddingsWrapper:
 
 
 # Global instance for reuse
-_embeddings_instance: Union[EmbeddingsWrapper, None] = None
+_embeddings_instance: EmbeddingsWrapper | None = None
 
 
 def get_embeddings() -> EmbeddingsWrapper:
@@ -132,7 +131,7 @@ def get_embeddings() -> EmbeddingsWrapper:
     return _embeddings_instance
 
 
-def generate_embedding(text: str) -> List[float]:
+def generate_embedding(text: str) -> list[float]:
     """Convenience function to generate single embedding.
 
     Args:
@@ -145,7 +144,7 @@ def generate_embedding(text: str) -> List[float]:
     return embeddings.generate_embedding(text)
 
 
-def batch_embed(texts: List[str], batch_size: int = 32) -> List[List[float]]:
+def batch_embed(texts: list[str], batch_size: int = 32) -> list[list[float]]:
     """Convenience function to generate multiple embeddings.
 
     Args:

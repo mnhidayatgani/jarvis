@@ -7,7 +7,7 @@ import json
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class SnapshotMemory:
@@ -31,19 +31,19 @@ class SnapshotMemory:
         if not self.index_file.exists():
             self._write_index({})
 
-    def _read_index(self) -> Dict[str, Any]:
+    def _read_index(self) -> dict[str, Any]:
         """Read snapshot index.
 
         Returns:
             Index dictionary.
         """
         try:
-            with open(self.index_file, "r", encoding="utf-8") as f:
+            with open(self.index_file, encoding="utf-8") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return {}
 
-    def _write_index(self, index: Dict[str, Any]) -> None:
+    def _write_index(self, index: dict[str, Any]) -> None:
         """Write snapshot index.
 
         Args:
@@ -52,15 +52,15 @@ class SnapshotMemory:
         try:
             with open(self.index_file, "w", encoding="utf-8") as f:
                 json.dump(index, f, indent=2, ensure_ascii=False)
-        except IOError as e:
+        except OSError as e:
             print(f"Warning: Failed to write snapshot index: {e}")
 
     def save_snapshot(
         self,
         diff_content: str,
-        file_paths: List[str],
-        commit_sha: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        file_paths: list[str],
+        commit_sha: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> str:
         """Save a code snapshot.
 
@@ -91,7 +91,7 @@ class SnapshotMemory:
         try:
             with open(snapshot_file, "w", encoding="utf-8") as f:
                 json.dump(snapshot_data, f, indent=2, ensure_ascii=False)
-        except IOError as e:
+        except OSError as e:
             print(f"Warning: Failed to save snapshot {snapshot_id}: {e}")
             return snapshot_id
 
@@ -107,7 +107,7 @@ class SnapshotMemory:
 
         return snapshot_id
 
-    def load_snapshot(self, snapshot_id: str) -> Optional[Dict[str, Any]]:
+    def load_snapshot(self, snapshot_id: str) -> dict[str, Any] | None:
         """Load a code snapshot.
 
         Args:
@@ -122,20 +122,20 @@ class SnapshotMemory:
             return None
 
         try:
-            with open(snapshot_file, "r", encoding="utf-8") as f:
+            with open(snapshot_file, encoding="utf-8") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             print(f"Warning: Failed to load snapshot {snapshot_id}: {e}")
             return None
 
     def list_snapshots(
         self,
-        from_timestamp: Optional[float] = None,
-        to_timestamp: Optional[float] = None,
-        file_path: Optional[str] = None,
-        commit_sha: Optional[str] = None,
+        from_timestamp: float | None = None,
+        to_timestamp: float | None = None,
+        file_path: str | None = None,
+        commit_sha: str | None = None,
         limit: int = 100,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """List snapshots with optional filters.
 
         Args:
@@ -197,7 +197,7 @@ class SnapshotMemory:
                 self._write_index(index)
 
             return True
-        except IOError as e:
+        except OSError as e:
             print(f"Warning: Failed to delete snapshot {snapshot_id}: {e}")
             return False
 
@@ -221,7 +221,7 @@ class SnapshotMemory:
 
         return deleted_count
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get snapshot memory statistics.
 
         Returns:
@@ -254,8 +254,8 @@ class SnapshotMemory:
         }
 
     def get_diff_for_files(
-        self, file_paths: List[str], since_timestamp: Optional[float] = None
-    ) -> List[Dict[str, Any]]:
+        self, file_paths: list[str], since_timestamp: float | None = None
+    ) -> list[dict[str, Any]]:
         """Get all diffs affecting specified files.
 
         Args:

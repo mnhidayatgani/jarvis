@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from jarvis.capture.git_hooks import GitHooks
 from jarvis.memory.factual import FactualMemory
 from jarvis.memory.semantic import SemanticMemory
 from jarvis.utils.config import Configuration
@@ -542,6 +543,152 @@ class MCPTools:
                 json.dump(context, f, indent=2)
         except OSError:
             pass
+
+    def install_git_hooks(self, force: bool = False) -> dict[str, Any]:
+        """Install git hooks for automatic code change capture.
+
+        Args:
+            force: Overwrite existing hooks.
+
+        Returns:
+            Installation status.
+        """
+        try:
+            hooks = GitHooks(self.project_root)
+            result = hooks.install_hooks(force)
+
+            if result["success"]:
+                message = self.persona.format_success(
+                    f"Git hooks installed, Sir. {len(result['installed'])} hook(s) active."
+                )
+            else:
+                message = self.persona.format_error(
+                    result.get("message", "Installation failed")
+                )
+
+            return {
+                **result,
+                "message": message,
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": self.persona.format_error(f"Hook installation failed: {str(e)}"),
+            }
+
+    def capture_code_change(
+        self,
+        file_path: str,
+        change_type: str,
+        diff_content: str | None = None,
+        commit_sha: str | None = None,
+        commit_message: str | None = None,
+    ) -> dict[str, Any]:
+        """Capture a code change event.
+
+        Args:
+            file_path: Path to changed file.
+            change_type: Type of change (modified, created, deleted).
+            diff_content: Diff content if available.
+            commit_sha: Git commit SHA if committed.
+            commit_message: Git commit message if committed.
+
+        Returns:
+            Capture status.
+        """
+        try:
+            timestamp = datetime.utcnow().isoformat()
+
+            # Create factual memory entry
+            entry_id = self.factual.create_entry(
+                project_id=self.project_id,
+                content=f"Code change: {change_type} {file_path}",
+                content_type="code_change",
+                file_path=file_path,
+                commit_sha=commit_sha,
+                metadata={
+                    "change_type": change_type,
+                    "has_diff": diff_content is not None,
+                    "commit_message": commit_message or "",
+                },
+            )
+
+            # Store diff in semantic memory if available
+            if diff_content:
+                self.semantic.add_semantic_entry(
+                    entry_id=entry_id,
+                    content=f"File: {file_path}\n{change_type}\n{diff_content}",
+                    metadata={
+                        "type": "code_change",
+                        "file_path": file_path,
+                        "change_type": change_type,
+                        "commit_sha": commit_sha or "",
+                        "timestamp": timestamp,
+                    },
+                )
+
+            # Extract decision if commit message contains decision keywords
+            if commit_message and self._contains_decision(commit_message):
+                decision_id = self.factual.create_entry(
+                    project_id=self.project_id,
+                    content=commit_message,
+                    content_type="decision",
+                    file_path=file_path,
+                    commit_sha=commit_sha,
+                    metadata={
+                        "extracted_from": "commit_message",
+                        "related_change": entry_id,
+                    },
+                )
+
+                self.semantic.add_semantic_entry(
+                    entry_id=decision_id,
+                    content=commit_message,
+                    metadata={
+                        "type": "decision",
+                        "file_path": file_path,
+                        "timestamp": timestamp,
+                    },
+                )
+
+            return {
+                "success": True,
+                "entry_id": entry_id,
+                "timestamp": timestamp,
+                "decision_detected": commit_message is not None
+                and self._contains_decision(commit_message),
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+            }
+
+    def _contains_decision(self, text: str) -> bool:
+        """Check if text contains decision keywords.
+
+        Args:
+            text: Text to check.
+
+        Returns:
+            True if decision keywords found.
+        """
+        keywords = [
+            "because",
+            "chose",
+            "decided",
+            "decision",
+            "selected",
+            "using",
+            "instead of",
+            "rather than",
+        ]
+
+        text_lower = text.lower()
+        return any(keyword in text_lower for keyword in keywords)
 
 
 def get_mcp_tools(project_root: Path) -> MCPTools:

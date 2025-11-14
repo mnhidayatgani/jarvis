@@ -189,7 +189,7 @@ class Configuration:
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
-        except IOError as e:
+        except OSError as e:
             print(f"Warning: Failed to save config to {path}: {e}")
 
     def generate_project_id(self, project_path: Path | None = None) -> str:

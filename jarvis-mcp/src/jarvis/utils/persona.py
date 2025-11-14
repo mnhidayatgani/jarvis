@@ -7,8 +7,7 @@ Implements the JARVIS MCU character persona:
 - Calm and helpful in errors
 """
 
-import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class JarvisPersona:
@@ -111,7 +110,7 @@ class JarvisPersona:
         return text
 
     @staticmethod
-    def format_success(detail: Optional[str] = None) -> str:
+    def format_success(detail: str | None = None) -> str:
         """Format success message.
 
         Args:
@@ -145,7 +144,7 @@ class JarvisPersona:
 
     @staticmethod
     def format_list(
-        items: List[str], prefix: Optional[str] = None, numbered: bool = False
+        items: list[str], prefix: str | None = None, numbered: bool = False
     ) -> str:
         """Format list of items in concise style.
 
@@ -175,7 +174,7 @@ class JarvisPersona:
 
     @staticmethod
     def format_table(
-        headers: List[str], rows: List[List[str]], title: Optional[str] = None
+        headers: list[str], rows: list[list[str]], title: str | None = None
     ) -> str:
         """Format data as a simple table.
 
@@ -241,7 +240,7 @@ class JarvisPersona:
         return progress_msg
 
     @staticmethod
-    def format_json_response(data: Dict[str, Any], verbose: bool = False) -> str:
+    def format_json_response(data: dict[str, Any], verbose: bool = False) -> str:
         """Format JSON data for response.
 
         Args:
@@ -264,7 +263,7 @@ def format_response(message: str, response_type: str = "info", **kwargs: Any) ->
     return JarvisPersona.format_response(message, response_type, **kwargs)
 
 
-def format_success(detail: Optional[str] = None) -> str:
+def format_success(detail: str | None = None) -> str:
     """Convenience wrapper for JarvisPersona.format_success."""
     return JarvisPersona.format_success(detail)
 

@@ -142,21 +142,21 @@
 
 ### Implementation for User Story 4
 
-- [ ] T058 [P] [US4] Implement GitHooks class in jarvis-mcp/src/jarvis/capture/git_hooks.py (install/uninstall hooks)
-- [ ] T059 [P] [US4] Implement FileWatcher class in jarvis-mcp/src/jarvis/capture/file_watcher.py (using watchdog library)
-- [ ] T060 [US4] Create pre-commit hook script template in jarvis-mcp/templates/pre-commit.sh (call JARVIS capture endpoint)
-- [ ] T061 [US4] Create post-commit hook script template in jarvis-mcp/templates/post-commit.sh (update commit_sha in CodeChange)
-- [ ] T062 [US4] In GitHooks.install(), detect existing hooks, offer to merge or manual install
-- [ ] T063 [US4] In pre-commit hook, capture staged files and diffs via `git diff --cached`
-- [ ] T064 [US4] Create CodeChange entity (file_path, change_type, diff_content, timestamp) in pre-commit
-- [ ] T065 [US4] In post-commit hook, update CodeChange with commit_sha and commit_message
-- [ ] T066 [US4] Extract decisions from commit messages (detect keywords: "because", "chose", "decided")
-- [ ] T067 [US4] Create DecisionRecord if decision detected in commit message
-- [ ] T068 [US4] In FileWatcher, start watchdog observer on project root (async, non-blocking)
-- [ ] T069 [US4] Filter events by .gitignore rules (don't capture ignored files)
-- [ ] T070 [US4] On file modification event, create uncommitted CodeChange (commit_sha=NULL)
-- [ ] T071 [US4] Ensure file watcher uses <5% CPU (batch events, debounce rapid changes)
-- [ ] T072 [US4] Store CodeChange to FactualMemory and create SNAPSHOT MemoryEntry
+- [x] T058 [P] [US4] Implement GitHooks class in jarvis-mcp/src/jarvis/capture/git_hooks.py (install/uninstall hooks)
+- [x] T059 [P] [US4] Implement FileWatcher class in jarvis-mcp/src/jarvis/capture/file_watcher.py (using watchdog library)
+- [x] T060 [US4] Create pre-commit hook script template in jarvis-mcp/templates/pre-commit.sh (call JARVIS capture endpoint)
+- [x] T061 [US4] Create post-commit hook script template in jarvis-mcp/templates/post-commit.sh (update commit_sha in CodeChange)
+- [x] T062 [US4] In GitHooks.install(), detect existing hooks, offer to merge or manual install
+- [x] T063 [US4] In pre-commit hook, capture staged files and diffs via `git diff --cached`
+- [x] T064 [US4] Create CodeChange entity (file_path, change_type, diff_content, timestamp) in pre-commit
+- [x] T065 [US4] In post-commit hook, update CodeChange with commit_sha and commit_message
+- [x] T066 [US4] Extract decisions from commit messages (detect keywords: "because", "chose", "decided")
+- [x] T067 [US4] Create DecisionRecord if decision detected in commit message
+- [x] T068 [US4] In FileWatcher, start watchdog observer on project root (async, non-blocking)
+- [x] T069 [US4] Filter events by .gitignore rules (don't capture ignored files)
+- [x] T070 [US4] On file modification event, create uncommitted CodeChange (commit_sha=NULL)
+- [x] T071 [US4] Ensure file watcher uses <5% CPU (batch events, debounce rapid changes)
+- [x] T072 [US4] Store CodeChange to FactualMemory and create SNAPSHOT MemoryEntry
 
 **Checkpoint**: User Story 4 complete - Auto-capture working for committed and uncommitted changes
 

@@ -8,7 +8,7 @@ import sqlite3
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 class FactualMemory:
@@ -32,7 +32,7 @@ class FactualMemory:
         conn = self._get_connection()
         try:
             schema_path = Path(__file__).parent / "schema.sql"
-            with open(schema_path, "r", encoding="utf-8") as f:
+            with open(schema_path, encoding="utf-8") as f:
                 schema_sql = f.read()
             conn.executescript(schema_sql)
             conn.commit()
@@ -54,12 +54,12 @@ class FactualMemory:
         project_id: str,
         content: str,
         content_type: str,
-        file_path: Optional[str] = None,
-        line_start: Optional[int] = None,
-        line_end: Optional[int] = None,
-        commit_sha: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        tags: Optional[List[str]] = None,
+        file_path: str | None = None,
+        line_start: int | None = None,
+        line_end: int | None = None,
+        commit_sha: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        tags: list[str] | None = None,
     ) -> str:
         """Create a new memory entry.
 
@@ -113,7 +113,7 @@ class FactualMemory:
 
         return entry_id
 
-    def get_entry(self, entry_id: str) -> Optional[Dict[str, Any]]:
+    def get_entry(self, entry_id: str) -> dict[str, Any] | None:
         """Get a memory entry by ID.
 
         Args:
@@ -140,15 +140,15 @@ class FactualMemory:
 
     def query_entries(
         self,
-        project_id: Optional[str] = None,
-        content_type: Optional[str] = None,
-        file_path: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        from_timestamp: Optional[float] = None,
-        to_timestamp: Optional[float] = None,
+        project_id: str | None = None,
+        content_type: str | None = None,
+        file_path: str | None = None,
+        tags: list[str] | None = None,
+        from_timestamp: float | None = None,
+        to_timestamp: float | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Query memory entries with filters.
 
         Args:
@@ -166,7 +166,7 @@ class FactualMemory:
         """
         # Build query
         query = "SELECT * FROM memory_entries WHERE 1=1"
-        params: List[Any] = []
+        params: list[Any] = []
 
         if project_id:
             query += " AND project_id = ?"
@@ -207,7 +207,7 @@ class FactualMemory:
             conn.close()
 
     def update_entry(
-        self, entry_id: str, updates: Dict[str, Any]
+        self, entry_id: str, updates: dict[str, Any]
     ) -> bool:
         """Update a memory entry.
 
@@ -276,7 +276,7 @@ class FactualMemory:
         finally:
             conn.close()
 
-    def _row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
+    def _row_to_dict(self, row: sqlite3.Row) -> dict[str, Any]:
         """Convert SQLite row to dictionary.
 
         Args:
@@ -302,7 +302,7 @@ class FactualMemory:
 
         return result
 
-    def get_stats(self, project_id: str) -> Dict[str, Any]:
+    def get_stats(self, project_id: str) -> dict[str, Any]:
         """Get memory statistics for a project.
 
         Args:
