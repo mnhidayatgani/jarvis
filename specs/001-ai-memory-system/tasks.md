@@ -70,15 +70,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T025 [P] [US1] Implement init command handler in jarvis-cli/src/commands/init.ts (detect project root, validate prerequisites)
-- [ ] T026 [US1] Create .jarvis directory structure (.jarvis/{db,snapshots}, .jarvis/config.json) in jarvis-cli/src/commands/init.ts
-- [ ] T027 [US1] Call MCP server to initialize SQLite database (create tables from schema) in init.ts
-- [ ] T028 [US1] Call MCP server to initialize ChromaDB collection (project-specific collection name) in init.ts
-- [ ] T029 [US1] Create ProjectContext entity with auto-detected name and root_path in init.ts
-- [ ] T030 [US1] Handle existing .jarvis/ directory (warn user, ask for confirmation before reinit) in init.ts
-- [ ] T031 [US1] Detect if git repository exists, warn if not (auto-capture limited) in init.ts
-- [ ] T032 [US1] Register CLI entry point in jarvis-cli/src/index.ts (parse `jarvis init` command, route to handler)
-- [ ] T033 [US1] Add build script to jarvis-cli/package.json (esbuild with shebang, executable output)
+- [x] T025 [P] [US1] Implement init command handler in jarvis-cli/src/commands/init.ts (detect project root, validate prerequisites)
+- [x] T026 [US1] Create .jarvis directory structure (.jarvis/{db,snapshots}, .jarvis/config.json) in jarvis-cli/src/commands/init.ts
+- [x] T027 [US1] Call MCP server to initialize SQLite database (create tables from schema) in init.ts
+- [x] T028 [US1] Call MCP server to initialize ChromaDB collection (project-specific collection name) in init.ts
+- [x] T029 [US1] Create ProjectContext entity with auto-detected name and root_path in init.ts
+- [x] T030 [US1] Handle existing .jarvis/ directory (warn user, ask for confirmation before reinit) in init.ts
+- [x] T031 [US1] Detect if git repository exists, warn if not (auto-capture limited) in init.ts
+- [x] T032 [US1] Register CLI entry point in jarvis-cli/src/index.ts (parse `jarvis init` command, route to handler)
+- [x] T033 [US1] Add build script to jarvis-cli/package.json (esbuild with shebang, executable output)
 
 **Checkpoint**: User Story 1 complete - `jarvis init` works, creates functional memory system
 
