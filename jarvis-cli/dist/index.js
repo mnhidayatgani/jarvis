@@ -728,6 +728,109 @@ function parseRecallArgs(args) {
   return { query: queryParts.join(" "), options };
 }
 
+// src/commands/scan.ts
+async function handleScanCommand(options = {}) {
+  const output = getFormatter(options);
+  try {
+    const projectPath = process.cwd();
+    output.progress("Analyzing codebase...");
+    const client = getDefaultClient();
+    const result = await client.analyzeCodebase(projectPath, {
+      verbose: options.verbose,
+      interactive: options.interactive
+    });
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    if (!result.success) {
+      output.error("Analysis failed", new Error(result.error || "Unknown error"));
+      process.exit(1);
+    }
+    const analysis = result.data;
+    output.success("Codebase analysis complete");
+    console.log();
+    if (analysis?.tech_stack && analysis.tech_stack.length > 0) {
+      console.log("\u{1F4DA} Tech Stack:");
+      output.list(analysis.tech_stack);
+      console.log();
+    }
+    if (analysis?.dependencies) {
+      const depCount = Object.keys(analysis.dependencies).length;
+      if (depCount > 0) {
+        console.log(`\u{1F4E6} Dependencies: ${depCount} detected`);
+        if (options.verbose) {
+          for (const [manager, deps] of Object.entries(analysis.dependencies)) {
+            console.log(`   ${manager}:`);
+            const depList = Array.isArray(deps) ? deps : Object.keys(deps);
+            depList.slice(0, 10).forEach((dep) => {
+              console.log(`     - ${dep}`);
+            });
+            if (depList.length > 10) {
+              console.log(`     ... and ${depList.length - 10} more`);
+            }
+          }
+        }
+        console.log();
+      }
+    }
+    if (analysis?.file_count !== void 0) {
+      console.log(`\u{1F4C1} Files: ${analysis.file_count} analyzed`);
+      if (analysis.directory_count) {
+        console.log(`\u{1F4C2} Directories: ${analysis.directory_count}`);
+      }
+      console.log();
+    }
+    if (analysis?.inconsistencies && analysis.inconsistencies.length > 0) {
+      console.log("\u26A0\uFE0F  Inconsistencies Detected:");
+      analysis.inconsistencies.forEach((issue) => {
+        console.log(`   \u2022 ${issue.type}: ${issue.description}`);
+        if (options.verbose && issue.examples) {
+          issue.examples.forEach((ex) => console.log(`     - ${ex}`));
+        }
+      });
+      console.log();
+    }
+    if (analysis?.questions && analysis.questions.length > 0) {
+      console.log("\u2753 Clarifying Questions:");
+      analysis.questions.forEach((q, i) => {
+        console.log(`   ${i + 1}. ${q}`);
+      });
+      console.log();
+      if (options.interactive) {
+        output.info("Run with --interactive to answer questions", false);
+      }
+    }
+    if (options.verbose && analysis?.suggestions) {
+      console.log("\u{1F4A1} Suggestions:");
+      output.list(analysis.suggestions);
+      console.log();
+    }
+    output.info("Project context stored in JARVIS memory", false);
+  } catch (error) {
+    output.error(
+      "Failed to scan codebase",
+      error instanceof Error ? error : void 0
+    );
+    process.exit(1);
+  }
+}
+function parseScanArgs(args) {
+  const options = {};
+  for (const arg of args) {
+    if (arg === "--verbose" || arg === "-v") {
+      options.verbose = true;
+    } else if (arg === "--quiet" || arg === "-q") {
+      options.quiet = true;
+    } else if (arg === "--json") {
+      options.json = true;
+    } else if (arg === "--interactive" || arg === "-i") {
+      options.interactive = true;
+    }
+  }
+  return options;
+}
+
 // src/index.ts
 async function main() {
   const args = process.argv.slice(2);
@@ -752,12 +855,15 @@ async function main() {
         await handleRecallCommand(query, options);
       }
       break;
+    case "scan":
+      await handleScanCommand(parseScanArgs(args.slice(1)));
+      break;
     case "config":
       handleConfigCommand(args.slice(1));
       break;
     default:
       console.error(`Error: Unknown command "${command}"`);
-      console.log("Available commands: init, remember, recall, config");
+      console.log("Available commands: init, remember, recall, scan, config");
       process.exit(1);
   }
 }

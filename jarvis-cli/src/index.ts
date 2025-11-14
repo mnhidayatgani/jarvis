@@ -4,6 +4,7 @@ import handleConfigCommand from './commands/config'
 import { handleInitCommand, parseInitArgs } from './commands/init'
 import { handleRememberCommand, parseRememberArgs } from './commands/remember'
 import { handleRecallCommand, parseRecallArgs } from './commands/recall'
+import { handleScanCommand, parseScanArgs } from './commands/scan'
 
 /**
  * JARVIS CLI Entry Point
@@ -37,13 +38,17 @@ async function main() {
       }
       break
 
+    case 'scan':
+      await handleScanCommand(parseScanArgs(args.slice(1)))
+      break
+
     case 'config':
       handleConfigCommand(args.slice(1))
       break
 
     default:
       console.error(`Error: Unknown command "${command}"`)
-      console.log('Available commands: init, remember, recall, config')
+      console.log('Available commands: init, remember, recall, scan, config')
       process.exit(1)
   }
 }

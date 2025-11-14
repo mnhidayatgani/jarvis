@@ -5,6 +5,7 @@ Implements the MCP tool interface for memory operations.
 
 import hashlib
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -254,6 +255,293 @@ class MCPTools:
             chunks.append(" ".join(chunk_words))
 
         return chunks
+
+    def analyze_codebase(
+        self, verbose: bool = False, interactive: bool = False
+    ) -> dict[str, Any]:
+        """Analyze existing codebase and populate project context.
+
+        Args:
+            verbose: Include detailed analysis.
+            interactive: Enable interactive Q&A mode.
+
+        Returns:
+            Analysis report with tech stack, dependencies, structure, inconsistencies.
+        """
+        try:
+            # Detect tech stack
+            tech_stack = self._detect_tech_stack()
+
+            # Scan dependencies
+            dependencies = self._scan_dependencies()
+
+            # Build file structure
+            file_structure = self._build_file_structure()
+
+            # Detect inconsistencies
+            inconsistencies = self._detect_inconsistencies()
+
+            # Generate clarifying questions
+            questions = self._generate_questions(tech_stack, inconsistencies)
+
+            # Update ProjectContext
+            self._update_project_context(
+                tech_stack=tech_stack,
+                dependencies=dependencies,
+                file_structure=file_structure,
+            )
+
+            # Return analysis report
+            return {
+                "success": True,
+                "tech_stack": tech_stack,
+                "dependencies": dependencies,
+                "file_count": file_structure.get("file_count", 0),
+                "directory_count": file_structure.get("directory_count", 0),
+                "inconsistencies": inconsistencies,
+                "questions": questions,
+                "suggestions": self._generate_suggestions(tech_stack, inconsistencies)
+                if verbose
+                else [],
+                "message": self.persona.format_success(
+                    f"Analysis complete, Sir. Found {len(tech_stack)} technologies."
+                ),
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": self.persona.format_error(
+                    f"Analysis failed: {str(e)}"
+                ),
+            }
+
+    def _detect_tech_stack(self) -> list[str]:
+        """Detect technologies from project files."""
+        tech_stack = set()
+
+        # Check for package managers and config files
+        indicators = {
+            "package.json": ["JavaScript", "Node.js"],
+            "package-lock.json": ["npm"],
+            "yarn.lock": ["Yarn"],
+            "pnpm-lock.yaml": ["pnpm"],
+            "tsconfig.json": ["TypeScript"],
+            "pyproject.toml": ["Python"],
+            "requirements.txt": ["Python", "pip"],
+            "Pipfile": ["Python", "Pipenv"],
+            "poetry.lock": ["Poetry"],
+            "Gemfile": ["Ruby", "Bundler"],
+            "Gemfile.lock": ["Bundler"],
+            "go.mod": ["Go"],
+            "go.sum": ["Go"],
+            "Cargo.toml": ["Rust", "Cargo"],
+            "Cargo.lock": ["Cargo"],
+            "pom.xml": ["Java", "Maven"],
+            "build.gradle": ["Java", "Gradle"],
+            "composer.json": ["PHP", "Composer"],
+            ".csproj": ["C#", ".NET"],
+            "mix.exs": ["Elixir"],
+        }
+
+        for file, techs in indicators.items():
+            if (self.project_root / file).exists():
+                tech_stack.update(techs)
+
+        # Check for common directories
+        if (self.project_root / "node_modules").exists():
+            tech_stack.add("Node.js")
+        if (self.project_root / ".venv").exists() or (
+            self.project_root / "venv"
+        ).exists():
+            tech_stack.add("Python")
+
+        return sorted(tech_stack)
+
+    def _scan_dependencies(self) -> dict[str, list[str]]:
+        """Scan project dependencies from package files."""
+        dependencies: dict[str, list[str]] = {}
+
+        # Node.js
+        package_json = self.project_root / "package.json"
+        if package_json.exists():
+            try:
+                with open(package_json) as f:
+                    data = json.load(f)
+                    deps: dict[str, Any] = {}
+                    deps.update(data.get("dependencies", {}))
+                    deps.update(data.get("devDependencies", {}))
+                    dependencies["npm"] = list(deps.keys())
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        # Python
+        pyproject = self.project_root / "pyproject.toml"
+        if pyproject.exists():
+            try:
+                content = pyproject.read_text()
+                # Simple parsing for dependencies
+                deps_list = re.findall(r'"([a-zA-Z0-9\-_]+)"', content)
+                dependencies["python"] = deps_list[:20]  # Limit to avoid clutter
+            except OSError:
+                pass
+
+        # Ruby
+        gemfile = self.project_root / "Gemfile"
+        if gemfile.exists():
+            try:
+                content = gemfile.read_text()
+                deps_list = re.findall(r"gem\s+['\"]([^'\"]+)['\"]", content)
+                dependencies["ruby"] = deps_list
+            except OSError:
+                pass
+
+        return dependencies
+
+    def _build_file_structure(self) -> dict[str, Any]:
+        """Build file structure map."""
+        file_count = 0
+        dir_count = 0
+
+        # Patterns to ignore
+        ignore_patterns = {
+            "node_modules",
+            ".git",
+            ".venv",
+            "venv",
+            "__pycache__",
+            "dist",
+            "build",
+            ".next",
+            "target",
+        }
+
+        for item in self.project_root.rglob("*"):
+            # Skip ignored directories
+            if any(pattern in item.parts for pattern in ignore_patterns):
+                continue
+
+            if item.is_file():
+                file_count += 1
+            elif item.is_dir():
+                dir_count += 1
+
+        return {"file_count": file_count, "directory_count": dir_count}
+
+    def _detect_inconsistencies(self) -> list[dict[str, Any]]:
+        """Detect code inconsistencies."""
+        inconsistencies = []
+
+        # Check for mixed import styles (Python)
+        py_files = list(self.project_root.glob("**/*.py"))
+        if len(py_files) > 5:
+            has_relative = False
+            has_absolute = False
+
+            for py_file in py_files[:10]:  # Sample
+                try:
+                    content = py_file.read_text()
+                    if re.search(r"from\s+\.", content):
+                        has_relative = True
+                    if re.search(r"from\s+[a-zA-Z]", content):
+                        has_absolute = True
+                except OSError:
+                    pass
+
+            if has_relative and has_absolute:
+                inconsistencies.append(
+                    {
+                        "type": "Import Style",
+                        "description": "Mixed relative and absolute imports detected",
+                        "severity": "low",
+                    }
+                )
+
+        return inconsistencies
+
+    def _generate_questions(
+        self, tech_stack: list[str], inconsistencies: list[dict[str, Any]]
+    ) -> list[str]:
+        """Generate clarifying questions based on analysis."""
+        questions = []
+
+        # Ask about primary language if multiple detected
+        languages = [
+            "JavaScript",
+            "TypeScript",
+            "Python",
+            "Ruby",
+            "Go",
+            "Rust",
+            "Java",
+        ]
+        detected_langs = [t for t in tech_stack if t in languages]
+
+        if len(detected_langs) > 1:
+            questions.append(
+                f"Multiple languages detected ({', '.join(detected_langs)}). Which is the primary language?"
+            )
+
+        # Ask about architecture if unclear
+        if not any(
+            (self.project_root / d).exists() for d in ["src", "lib", "app", "pkg"]
+        ):
+            questions.append("What is your preferred project structure convention?")
+
+        return questions
+
+    def _generate_suggestions(
+        self, tech_stack: list[str], inconsistencies: list[dict[str, Any]]
+    ) -> list[str]:
+        """Generate improvement suggestions."""
+        suggestions = []
+
+        if inconsistencies:
+            suggestions.append(
+                "Consider standardizing code style with linters/formatters"
+            )
+
+        if "TypeScript" in tech_stack:
+            if not (self.project_root / "tsconfig.json").exists():
+                suggestions.append("Add tsconfig.json for TypeScript configuration")
+
+        if "Python" in tech_stack:
+            if not (self.project_root / "pyproject.toml").exists():
+                suggestions.append("Consider using pyproject.toml for modern Python projects")
+
+        return suggestions
+
+    def _update_project_context(
+        self,
+        tech_stack: list[str],
+        dependencies: dict[str, list[str]],
+        file_structure: dict[str, Any],
+    ) -> None:
+        """Update project context in storage."""
+        context_file = self.project_root / ".jarvis" / "project_context.json"
+
+        if context_file.exists():
+            try:
+                with open(context_file) as f:
+                    context = json.load(f)
+            except (json.JSONDecodeError, OSError):
+                context = {}
+        else:
+            context = {}
+
+        # Update fields
+        context["tech_stack"] = tech_stack
+        context["dependencies"] = dependencies
+        context["file_structure_map"] = file_structure
+        context["updated_at"] = datetime.utcnow().isoformat()
+
+        # Save
+        try:
+            with open(context_file, "w") as f:
+                json.dump(context, f, indent=2)
+        except OSError:
+            pass
 
 
 def get_mcp_tools(project_root: Path) -> MCPTools:

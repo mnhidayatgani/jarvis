@@ -117,18 +117,18 @@
 
 ### Implementation for User Story 3
 
-- [ ] T046 [P] [US3] Implement scan command handler in jarvis-cli/src/commands/scan.ts (trigger codebase analysis)
-- [ ] T047 [US3] In jarvis-cli/src/commands/scan.ts, call MCP tool analyze_codebase() with project_path and options
-- [ ] T048 [US3] In jarvis-mcp, implement MCP tool analyze_codebase in src/jarvis/mcp/tools.py (detect tech stack from files)
-- [ ] T049 [US3] Scan package.json, pyproject.toml, Gemfile, go.mod for dependencies in analyze_codebase
-- [ ] T050 [US3] Build file structure map (recursive directory tree) in analyze_codebase
-- [ ] T051 [US3] Detect inconsistencies (mixed import styles, naming conventions, duplicate code) in analyze_codebase
-- [ ] T052 [US3] Generate clarifying questions based on ambiguous patterns in analyze_codebase
-- [ ] T053 [US3] Store ProjectContext with tech_stack, dependencies, file_structure_map in analyze_codebase
-- [ ] T054 [US3] Return tiered report (summary, inconsistencies, questions) with JARVIS persona
-- [ ] T055 [US3] In jarvis-cli, format scan results with drill-down capability (use --verbose for details)
-- [ ] T056 [US3] Implement interactive Q&A mode in scan.ts (ask questions, store answers to semantic memory)
-- [ ] T057 [US3] Enforce <5 minute timeout for 10k files scan (add progress indicator)
+- [x] T046 [P] [US3] Implement scan command handler in jarvis-cli/src/commands/scan.ts (trigger codebase analysis)
+- [x] T047 [US3] In jarvis-cli/src/commands/scan.ts, call MCP tool analyze_codebase() with project_path and options
+- [x] T048 [US3] In jarvis-mcp, implement MCP tool analyze_codebase in src/jarvis/mcp/tools.py (detect tech stack from files)
+- [x] T049 [US3] Scan package.json, pyproject.toml, Gemfile, go.mod for dependencies in analyze_codebase
+- [x] T050 [US3] Build file structure map (recursive directory tree) in analyze_codebase
+- [x] T051 [US3] Detect inconsistencies (mixed import styles, naming conventions, duplicate code) in analyze_codebase
+- [x] T052 [US3] Generate clarifying questions based on ambiguous patterns in analyze_codebase
+- [x] T053 [US3] Store ProjectContext with tech_stack, dependencies, file_structure_map in analyze_codebase
+- [x] T054 [US3] Return tiered report (summary, inconsistencies, questions) with JARVIS persona
+- [x] T055 [US3] In jarvis-cli, format scan results with drill-down capability (use --verbose for details)
+- [x] T056 [US3] Implement interactive Q&A mode in scan.ts (ask questions, store answers to semantic memory)
+- [x] T057 [US3] Enforce <5 minute timeout for 10k files scan (add progress indicator)
 
 **Checkpoint**: User Story 3 complete - Project onboarding functional
 
