@@ -6,7 +6,6 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import { resolve, basename } from 'path'
 import { execSync } from 'child_process'
 import { createHash } from 'crypto'
-import { getDefaultClient } from '../api/mcp-client'
 import { getFormatter } from '../utils/output'
 import { DEFAULT_CONFIG } from '../config/config'
 
@@ -99,7 +98,7 @@ export async function handleInitCommand(options: InitOptions = {}): Promise<void
  */
 function detectProjectRoot(): string {
   // Start from current directory
-  let currentDir = process.cwd()
+  const currentDir = process.cwd()
 
   // Look for common project indicators
   const indicators = [
@@ -185,10 +184,7 @@ function generateProjectId(projectRoot: string): string {
 /**
  * Initialize databases
  */
-function initializeDatabases(jarvisDir: string, projectId: string): void {
-  // Create placeholder for SQLite database
-  const dbPath = resolve(jarvisDir, 'db', 'memory.db')
-
+function initializeDatabases(jarvisDir: string, _projectId: string): void {
   // Create placeholder for ChromaDB
   const chromaPath = resolve(jarvisDir, 'db', 'chroma')
   if (!existsSync(chromaPath)) {

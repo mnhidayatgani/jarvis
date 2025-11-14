@@ -347,7 +347,7 @@ async function handleInitCommand(options = {}) {
   }
 }
 function detectProjectRoot() {
-  let currentDir = process.cwd();
+  const currentDir = process.cwd();
   const indicators = [
     "package.json",
     "pyproject.toml",
@@ -401,8 +401,7 @@ function generateProjectId(projectRoot) {
   const absolutePath = resolve(projectRoot);
   return createHash("sha256").update(absolutePath).digest("hex");
 }
-function initializeDatabases(jarvisDir, projectId) {
-  const dbPath = resolve(jarvisDir, "db", "memory.db");
+function initializeDatabases(jarvisDir, _projectId) {
   const chromaPath = resolve(jarvisDir, "db", "chroma");
   if (!existsSync2(chromaPath)) {
     mkdirSync2(chromaPath, { recursive: true });
