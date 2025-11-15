@@ -73,10 +73,10 @@
 
 ### Command Pattern Implementation
 
-- [ ] T029 [P] [US1] Write characterization tests for InitCommand in jarvis-cli/tests/unit/commands/init.test.ts
-- [ ] T030 [US1] Refactor InitCommand to extend BaseCommand in jarvis-cli/src/commands/init.ts
-- [ ] T031 [US1] Implement parse(), validate(), execute() methods for InitCommand
-- [ ] T032 [US1] Verify InitCommand tests still pass and add edge case tests
+- [X] T029 [P] [US1] Write characterization tests for InitCommand in jarvis-cli/tests/unit/commands/init.test.ts
+- [X] T030 [US1] Refactor InitCommand to extend BaseCommand in jarvis-cli/src/commands/init.ts
+- [X] T031 [US1] Implement parse(), validate(), execute() methods for InitCommand
+- [X] T032 [US1] Verify InitCommand tests still pass and add edge case tests
 - [x] T033 [P] [US1] Write characterization tests for StatusCommand in jarvis-cli/tests/unit/commands/status.test.ts
 - [x] T034 [US1] Refactor StatusCommand to extend BaseCommand in jarvis-cli/src/commands/status.ts
 - [x] T035 [P] [US1] Write characterization tests for ConfigCommand in jarvis-cli/tests/unit/commands/config.test.ts
@@ -344,8 +344,8 @@
 
 ### Remaining Commands
 
-- [ ] T151 [P] Write characterization tests for DoctorCommand in jarvis-cli/tests/unit/commands/doctor.test.ts
-- [ ] T152 Refactor DoctorCommand to extend BaseCommand in jarvis-cli/src/commands/doctor.ts
+- [X] T151 [P] Write characterization tests for DoctorCommand in jarvis-cli/tests/unit/commands/doctor.test.ts
+- [X] T152 Refactor DoctorCommand to extend BaseCommand in jarvis-cli/src/commands/doctor.ts
 - [ ] T153 [P] Write characterization tests for CheckpointCommand in jarvis-cli/tests/unit/commands/checkpoint.test.ts
 - [ ] T154 Refactor CheckpointCommand to extend BaseCommand in jarvis-cli/src/commands/checkpoint.ts
 - [ ] T155 [P] Write characterization tests for RollbackCommand in jarvis-cli/tests/unit/commands/rollback.test.ts
