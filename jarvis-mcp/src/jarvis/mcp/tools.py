@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from jarvis.capture.git_hooks import GitHooks
+from jarvis.capture.scanner import analyze_tech_stack, generate_scan_report
 from jarvis.memory.factual import FactualMemory
 from jarvis.memory.semantic import SemanticMemory
 from jarvis.utils.config import Configuration
@@ -262,6 +263,8 @@ class MCPTools:
     ) -> dict[str, Any]:
         """Analyze existing codebase and populate project context.
 
+        Uses the scanner module for comprehensive tech stack detection.
+
         Args:
             verbose: Include detailed analysis.
             interactive: Enable interactive Q&A mode.
@@ -270,42 +273,51 @@ class MCPTools:
             Analysis report with tech stack, dependencies, structure, inconsistencies.
         """
         try:
-            # Detect tech stack
-            tech_stack = self._detect_tech_stack()
+            # Use scanner for comprehensive analysis
+            analysis = analyze_tech_stack(self.project_root)
 
-            # Scan dependencies
+            # Generate human-readable report
+            report_text = generate_scan_report(analysis)
+
+            # Scan dependencies (keep existing implementation for detailed deps)
             dependencies = self._scan_dependencies()
-
-            # Build file structure
-            file_structure = self._build_file_structure()
 
             # Detect inconsistencies
             inconsistencies = self._detect_inconsistencies()
 
             # Generate clarifying questions
-            questions = self._generate_questions(tech_stack, inconsistencies)
+            questions = self._generate_questions(
+                analysis["tech_stack"], inconsistencies
+            )
 
             # Update ProjectContext
             self._update_project_context(
-                tech_stack=tech_stack,
+                tech_stack=analysis["tech_stack"],
                 dependencies=dependencies,
-                file_structure=file_structure,
+                file_structure={"file_count": analysis["file_count"]},
             )
 
             # Return analysis report
             return {
                 "success": True,
-                "tech_stack": tech_stack,
-                "dependencies": dependencies,
-                "file_count": file_structure.get("file_count", 0),
-                "directory_count": file_structure.get("directory_count", 0),
-                "inconsistencies": inconsistencies,
-                "questions": questions,
-                "suggestions": self._generate_suggestions(tech_stack, inconsistencies)
-                if verbose
-                else [],
+                "data": {
+                    "tech_stack": analysis["tech_stack"],
+                    "dependencies": dependencies,
+                    "file_count": analysis["file_count"],
+                    "directory_count": analysis["directory_count"],
+                    "file_types": analysis["file_types"],
+                    "project_files": analysis["project_files"],
+                    "inconsistencies": inconsistencies,
+                    "questions": questions,
+                    "suggestions": self._generate_suggestions(
+                        analysis["tech_stack"], inconsistencies
+                    )
+                    if verbose
+                    else [],
+                },
+                "report": report_text,
                 "message": self.persona.format_success(
-                    f"Analysis complete, Sir. Found {len(tech_stack)} technologies."
+                    f"Analysis complete, Sir. Found {len(analysis['tech_stack'])} technologies."
                 ),
             }
 
@@ -313,9 +325,7 @@ class MCPTools:
             return {
                 "success": False,
                 "error": str(e),
-                "message": self.persona.format_error(
-                    f"Analysis failed: {str(e)}"
-                ),
+                "message": self.persona.format_error(f"Analysis failed: {str(e)}"),
             }
 
     def _detect_tech_stack(self) -> list[str]:
