@@ -1,236 +1,288 @@
 /**
  * Recall Command - Search JARVIS memory
+ * Refactored to use Command Pattern
  */
 
-import { getDefaultClient } from '../api/mcp-client'
-import { getFormatter } from '../utils/output'
+import { BaseCommand } from "./base/command";
+import type { RecallOptions, RecallResult, MemoryItem } from "./base/types";
+import { getDefaultClient } from "../api/mcp-client";
+import {
+  ValidationError,
+  MCPConnectionError,
+  InternalError,
+} from "../core/errors";
 
-interface RecallOptions {
-  type?: string
-  file?: string
-  since?: string
-  limit?: number
-  verbose?: boolean
-  quiet?: boolean
-  json?: boolean
-  id?: string // For drill-down by specific memory ID
-}
+export class RecallCommand extends BaseCommand<RecallOptions, RecallResult> {
+  parse(args: string[]): RecallOptions {
+    const options: RecallOptions = {};
+    const queryParts: string[] = [];
 
-export async function handleRecallCommand(
-  query: string,
-  options: RecallOptions = {},
-): Promise<void> {
-  const output = getFormatter(options)
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
 
-  try {
+      if (arg === "--type" || arg === "-t") {
+        options.type = args[++i];
+      } else if (arg === "--file" || arg === "-f") {
+        options.file = args[++i];
+      } else if (arg === "--since" || arg === "-s") {
+        options.since = args[++i];
+      } else if (arg === "--limit" || arg === "-l") {
+        options.limit = parseInt(args[++i], 10);
+      } else if (arg === "--id") {
+        options.id = args[++i];
+      } else if (arg === "--verbose" || arg === "-v") {
+        options.verbose = true;
+      } else if (arg === "--quiet" || arg === "-q") {
+        options.quiet = true;
+      } else if (arg === "--json") {
+        options.json = true;
+      } else if (!arg.startsWith("-")) {
+        queryParts.push(arg);
+      }
+    }
+
+    options.query = queryParts.join(" ");
+    return options;
+  }
+
+  validate(options: RecallOptions): void {
+    // If not drill-down by ID, query is required
+    if (!options.id && (!options.query || options.query.trim().length === 0)) {
+      throw new ValidationError(
+        'Query cannot be empty. Use: jarvis recall "search query" or --id <memory_id>',
+        "query",
+        options.query
+      );
+    }
+
+    // Validate limit if provided
+    if (options.limit !== undefined) {
+      if (isNaN(options.limit) || options.limit < 1 || options.limit > 100) {
+        throw new ValidationError(
+          `Invalid limit "${options.limit}". Must be between 1 and 100`,
+          "limit",
+          options.limit
+        );
+      }
+    }
+
+    // Validate memory type if provided
+    if (options.type) {
+      const validTypes = ["decision", "note", "context"];
+      if (!validTypes.includes(options.type)) {
+        throw new ValidationError(
+          `Invalid memory type "${options.type}". Valid types: ${validTypes.join(", ")}`,
+          "type",
+          options.type
+        );
+      }
+    }
+  }
+
+  async execute(options: RecallOptions): Promise<RecallResult> {
     // Handle drill-down by ID
     if (options.id) {
-      await handleRecallById(options.id, options)
-      return
+      return await this.recallById(options.id);
     }
 
-    if (!query || query.length === 0) {
-      output.error('Query cannot be empty. Use: jarvis recall "search query"')
-      process.exit(1)
-    }
+    // Handle search
+    return await this.recallByQuery(options);
+  }
 
-    output.progress('Searching JARVIS memory...')
+  private async recallByQuery(options: RecallOptions): Promise<RecallResult> {
+    try {
+      const client = getDefaultClient();
+      const response = await client.callTool("recall_context", {
+        query: options.query,
+        type_filter: options.type,
+        file_filter: options.file,
+        since: options.since,
+        limit: options.limit || 10,
+      });
 
-    // Call MCP server to search memory
-    const client = getDefaultClient()
-    const result = await client.recallContext({
-      query,
-      type_filter: options.type,
-      file_filter: options.file,
-      since: options.since,
-      limit: options.limit || 10,
-    })
-
-    if (options.json) {
-      console.log(JSON.stringify(result, null, 2))
-      return
-    }
-
-    // Format results
-    if (!result.data?.results || result.data.results.length === 0) {
-      output.info('No memories found matching your query', false)
-      
-      // Suggest alternatives
-      if (query.length > 0) {
-        output.info('Try broader search terms or check available memories with "jarvis status"', false)
+      if (!response.success) {
+        throw new MCPConnectionError(
+          response.error?.message || "Failed to search memory",
+          "mcp://recall_context"
+        );
       }
-      return
+
+      const data = response.data as any;
+      return {
+        success: true,
+        results: data.results || [],
+        total: data.total || data.results?.length || 0,
+        query: options.query,
+      };
+    } catch (error) {
+      if (error instanceof MCPConnectionError) {
+        throw error;
+      }
+      throw new InternalError(
+        "Failed to search memory",
+        { query: options.query, type: options.type },
+        error instanceof Error ? error : undefined
+      );
     }
+  }
 
-    output.success(`Found ${result.data.results.length} ${result.data.results.length === 1 ? 'memory' : 'memories'}`)
+  private async recallById(id: string): Promise<RecallResult> {
+    try {
+      const client = getDefaultClient();
+      const response = await client.callTool("get_memory_by_id", {
+        memory_id: id,
+        project_path: process.cwd(),
+      });
 
-    // Display in table format
-    console.log()
-    displayResultsTable(result.data.results, options)
-    console.log()
+      if (!response.success) {
+        throw new MCPConnectionError(
+          response.error?.message || `Memory ${id} not found`,
+          "mcp://get_memory_by_id"
+        );
+      }
 
-    // Show tip for drill-down
-    if (!options.quiet && result.data.results.length > 0) {
-      output.info('Use --verbose for details or --id <memory_id> to view full content', false)
+      return {
+        success: true,
+        memory: response.data as MemoryItem,
+      };
+    } catch (error) {
+      if (error instanceof MCPConnectionError) {
+        throw error;
+      }
+      throw new InternalError(
+        `Failed to retrieve memory ${id}`,
+        { memoryId: id },
+        error instanceof Error ? error : undefined
+      );
     }
-  } catch (error) {
-    output.error(
-      'Failed to recall memory',
-      error instanceof Error ? error : undefined,
-    )
-    process.exit(1)
   }
 }
 
-/**
- * Display search results in table format
- */
-function displayResultsTable(results: any[], options: RecallOptions): void {
-  // Table headers
-  const headers = ['ID', 'Content', 'Relevance', 'Date']
-  if (options.verbose) {
-    headers.push('Type', 'File')
-  }
-
-  // Calculate column widths
-  const maxContentLength = options.verbose ? 60 : 80
-  
-  // Display table header
-  console.log('─'.repeat(120))
-  console.log(`  ${headers.join('  |  ')}`)
-  console.log('─'.repeat(120))
-
-  // Display each result
-  results.forEach((item, index) => {
-    const id = item.id || (index + 1).toString()
-    const content = truncateText(item.content || '', maxContentLength)
-    const relevance = item.relevance_score 
-      ? `${(item.relevance_score * 100).toFixed(0)}%`
-      : 'N/A'
-    const date = item.timestamp 
-      ? new Date(item.timestamp).toLocaleDateString()
-      : 'Unknown'
-
-    let row = `  ${id.padEnd(6)} | ${content.padEnd(maxContentLength)} | ${relevance.padEnd(9)} | ${date}`
-
-    if (options.verbose) {
-      const type = item.type || 'N/A'
-      const file = item.file_path ? truncateText(item.file_path, 20) : 'N/A'
-      row += ` | ${type.padEnd(8)} | ${file}`
-    }
-
-    console.log(row)
-  })
-
-  console.log('─'.repeat(120))
-}
-
-/**
- * Truncate text to specified length with ellipsis
- */
-function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) {
-    return text
-  }
-  return text.substring(0, maxLength - 3) + '...'
-}
-
-/**
- * Handle drill-down to view specific memory by ID
- */
-async function handleRecallById(id: string, options: RecallOptions): Promise<void> {
-  const output = getFormatter(options)
+// Legacy export for backward compatibility
+export async function handleRecallCommand(
+  query: string,
+  options: RecallOptions = {}
+): Promise<void> {
+  const command = new RecallCommand();
 
   try {
-    output.progress(`Retrieving memory ${id}...`)
-
-    const client = getDefaultClient()
-    const result = await client.callTool('get_memory_by_id', {
-      memory_id: id,
-      project_path: process.cwd(),
-    })
-
-    if (options.json) {
-      console.log(JSON.stringify(result, null, 2))
-      return
+    if (!options.quiet) {
+      console.log(options.id ? `⏳ Retrieving memory ${options.id}...` : "⏳ Searching JARVIS memory...");
     }
 
-    if (!result.success || !result.data) {
-      output.error(`Memory ${id} not found`)
-      process.exit(1)
-    }
+    // Merge query and options
+    const allArgs = [
+      ...(query ? query.split(" ") : []),
+      ...(options.type ? ["--type", options.type] : []),
+      ...(options.file ? ["--file", options.file] : []),
+      ...(options.since ? ["--since", options.since] : []),
+      ...(options.limit ? ["--limit", options.limit.toString()] : []),
+      ...(options.id ? ["--id", options.id] : []),
+      ...(options.verbose ? ["--verbose"] : []),
+      ...(options.quiet ? ["--quiet"] : []),
+      ...(options.json ? ["--json"] : []),
+    ];
 
-    const memory = result.data
+    const result = await command.run(allArgs);
 
-    // Display full memory details
-    console.log()
-    console.log('═'.repeat(80))
-    console.log(`  Memory ID: ${id}`)
-    console.log('═'.repeat(80))
-    console.log()
-    console.log(`📝 ${memory.content}`)
-    console.log()
-    
-    if (memory.type) {
-      console.log(`   Type: ${memory.type}`)
-    }
-    if (memory.timestamp) {
-      console.log(`   Date: ${new Date(memory.timestamp).toLocaleString()}`)
-    }
-    if (memory.file_path) {
-      console.log(`   File: ${memory.file_path}`)
-    }
-    if (memory.tags && memory.tags.length > 0) {
-      console.log(`   Tags: ${memory.tags.join(', ')}`)
-    }
-    if (memory.metadata) {
-      console.log(`   Metadata: ${JSON.stringify(memory.metadata, null, 2)}`)
-    }
-    
-    console.log()
-    console.log('═'.repeat(80))
+    displayRecallResult(result, options);
   } catch (error) {
-    output.error(
-      `Failed to retrieve memory ${id}`,
-      error instanceof Error ? error : undefined,
-    )
-    process.exit(1)
+    console.error(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    process.exit(1);
   }
 }
 
-/**
- * Parse command line arguments for recall command
- */
-export function parseRecallArgs(args: string[]): {
-  query: string
-  options: RecallOptions
-} {
-  const options: RecallOptions = {}
-  const queryParts: string[] = []
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
-
-    if (arg === '--type' || arg === '-t') {
-      options.type = args[++i]
-    } else if (arg === '--file' || arg === '-f') {
-      options.file = args[++i]
-    } else if (arg === '--since' || arg === '-s') {
-      options.since = args[++i]
-    } else if (arg === '--limit' || arg === '-l') {
-      options.limit = parseInt(args[++i], 10)
-    } else if (arg === '--id') {
-      options.id = args[++i]
-    } else if (arg === '--verbose' || arg === '-v') {
-      options.verbose = true
-    } else if (arg === '--quiet' || arg === '-q') {
-      options.quiet = true
-    } else if (arg === '--json') {
-      options.json = true
-    } else if (!arg.startsWith('-')) {
-      queryParts.push(arg)
-    }
+function displayRecallResult(result: RecallResult, options: RecallOptions): void {
+  if (options.json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
   }
 
-  return { query: queryParts.join(' '), options }
+  // Display single memory (drill-down)
+  if (result.memory) {
+    displaySingleMemory(result.memory);
+    return;
+  }
+
+  // Display search results
+  if (!result.results || result.results.length === 0) {
+    console.log("ℹ️  No memories found matching your query");
+    console.log("   Try broader search terms or check available memories with 'jarvis status'");
+    return;
+  }
+
+  console.log(`✓ Found ${result.results.length} ${result.results.length === 1 ? "memory" : "memories"}`);
+  console.log();
+  displayResultsTable(result.results, options);
+  console.log();
+
+  if (!options.quiet) {
+    console.log("💡 Use --verbose for details or --id <memory_id> to view full content");
+  }
+}
+
+function displayResultsTable(results: MemoryItem[], options: RecallOptions): void {
+  const maxContentLength = options.verbose ? 60 : 80;
+
+  console.log("─".repeat(120));
+  console.log("  ID      | Content                                                  | Relevance | Date");
+  console.log("─".repeat(120));
+
+  results.forEach((item) => {
+    const id = item.id.substring(0, 6);
+    const content = truncateText(item.content || "", maxContentLength);
+    const relevance = item.relevance_score
+      ? `${(item.relevance_score * 100).toFixed(0)}%`
+      : "N/A";
+    const date = item.timestamp
+      ? new Date(item.timestamp).toLocaleDateString()
+      : "Unknown";
+
+    console.log(`  ${id.padEnd(6)} | ${content.padEnd(maxContentLength)} | ${relevance.padEnd(9)} | ${date}`);
+
+    if (options.verbose) {
+      if (item.type) console.log(`         Type: ${item.type}`);
+      if (item.file_path) console.log(`         File: ${item.file_path}`);
+      if (item.tags && item.tags.length > 0) console.log(`         Tags: ${item.tags.join(", ")}`);
+      console.log();
+    }
+  });
+
+  console.log("─".repeat(120));
+}
+
+function displaySingleMemory(memory: MemoryItem): void {
+  console.log();
+  console.log("═".repeat(80));
+  console.log(`  Memory ID: ${memory.id}`);
+  console.log("═".repeat(80));
+  console.log();
+  console.log(`📝 ${memory.content}`);
+  console.log();
+
+  if (memory.type) console.log(`   Type: ${memory.type}`);
+  if (memory.timestamp) console.log(`   Date: ${new Date(memory.timestamp).toLocaleString()}`);
+  if (memory.file_path) console.log(`   File: ${memory.file_path}`);
+  if (memory.tags && memory.tags.length > 0) console.log(`   Tags: ${memory.tags.join(", ")}`);
+  if (memory.metadata) console.log(`   Metadata: ${JSON.stringify(memory.metadata, null, 2)}`);
+
+  console.log();
+  console.log("═".repeat(80));
+}
+
+function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength - 3) + "...";
+}
+
+// Keep legacy parseRecallArgs for tests
+export function parseRecallArgs(args: string[]): {
+  query: string;
+  options: RecallOptions;
+} {
+  const command = new RecallCommand();
+  const parsed = command.parse(args);
+  return { query: parsed.query || "", options: parsed };
 }

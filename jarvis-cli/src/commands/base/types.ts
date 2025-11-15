@@ -89,3 +89,55 @@ export interface ScanResult {
   report?: string;
   error?: string;
 }
+
+// Remember Command Types
+export interface RememberOptions {
+  content?: string;
+  type?: string;
+  tags?: string[];
+  file?: string;
+  verbose?: boolean;
+  quiet?: boolean;
+  json?: boolean;
+}
+
+export interface RememberResult {
+  success: boolean;
+  memory_id: string;
+  type: string;
+  timestamp?: string;
+  error?: string;
+}
+
+// Recall Command Types
+export interface RecallOptions {
+  query?: string;
+  type?: string;
+  file?: string;
+  since?: string;
+  limit?: number;
+  verbose?: boolean;
+  quiet?: boolean;
+  json?: boolean;
+  id?: string; // For drill-down by specific memory ID
+}
+
+export interface MemoryItem {
+  id: string;
+  content: string;
+  type?: string;
+  timestamp?: string;
+  file_path?: string;
+  tags?: string[];
+  relevance_score?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface RecallResult {
+  success: boolean;
+  results?: MemoryItem[];
+  total?: number;
+  query?: string;
+  memory?: MemoryItem; // For single memory retrieval
+  error?: string;
+}
