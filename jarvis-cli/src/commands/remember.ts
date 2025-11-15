@@ -12,11 +12,22 @@ import {
   MCPConnectionError,
   InternalError,
 } from "../core/errors";
+import type { IOutputFormatter } from "../utils/output.js";
+import type { Logger } from "../utils/logger.js";
+import type { ErrorHandler } from "../core/errors/handler.js";
 
 export class RememberCommand extends BaseCommand<
   RememberOptions,
   RememberResult
 > {
+  constructor(
+    formatter: IOutputFormatter,
+    logger: Logger,
+    errorHandler: ErrorHandler
+  ) {
+    super(formatter, logger, errorHandler);
+  }
+
   parse(args: string[]): RememberOptions {
     const options: RememberOptions = {};
     const contentArgs: string[] = [];
@@ -152,19 +163,27 @@ export class RememberCommand extends BaseCommand<
 
 // Legacy export for backward compatibility
 export async function handleRememberCommand(
-  args: string[],
-  options: RememberOptions = {}
+  contentArgs: string[],
+  options: RememberOptions
 ): Promise<void> {
-  const command = new RememberCommand();
-
   try {
+    const { OutputFormatter } = require("../utils/output");
+    const { createLogger, LogLevel } = require("../utils/logger");
+    const { createErrorHandler } = require("../core/errors/handler");
+    
+    const formatter = new OutputFormatter();
+    const logger = createLogger({ level: LogLevel.ERROR });
+    const errorHandler = createErrorHandler(formatter, logger);
+    
+    const command = new RememberCommand(formatter, logger, errorHandler);
+
     if (!options.quiet) {
       console.log("⏳ Storing to JARVIS memory...");
     }
 
     // Merge args and options
     const allArgs = [
-      ...args,
+      ...contentArgs,
       ...(options.type ? ["--type", options.type] : []),
       ...(options.tags ? ["--tags", options.tags.join(",")] : []),
       ...(options.file ? ["--file", options.file] : []),
@@ -207,7 +226,15 @@ export function parseRememberArgs(args: string[]): {
   contentArgs: string[];
   options: RememberOptions;
 } {
-  const command = new RememberCommand();
+  const { OutputFormatter } = require("../utils/output");
+  const { createLogger, LogLevel } = require("../utils/logger");
+  const { createErrorHandler } = require("../core/errors/handler");
+  
+  const formatter = new OutputFormatter();
+  const logger = createLogger({ level: LogLevel.ERROR });
+  const errorHandler = createErrorHandler(formatter, logger);
+  
+  const command = new RememberCommand(formatter, logger, errorHandler);
   const parsed = command.parse(args);
   
   // Extract content args (non-flag arguments)

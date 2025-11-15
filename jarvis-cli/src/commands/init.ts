@@ -15,8 +15,19 @@ import {
   ConfigurationError,
   InternalError,
 } from "../core/errors";
+import type { IOutputFormatter } from "../utils/output.js";
+import type { Logger } from "../utils/logger.js";
+import type { ErrorHandler } from "../core/errors/handler.js";
 
 export class InitCommand extends BaseCommand<InitOptions, InitResult> {
+  constructor(
+    formatter: IOutputFormatter,
+    logger: Logger,
+    errorHandler: ErrorHandler
+  ) {
+    super(formatter, logger, errorHandler);
+  }
+
   parse(args: string[]): InitOptions {
     const options: InitOptions = {};
 
@@ -277,11 +288,19 @@ exit 0
 
 // Legacy export for backward compatibility
 export async function handleInitCommand(
-  options: InitOptions = {}
+  options: InitOptions
 ): Promise<void> {
-  const command = new InitCommand();
-
   try {
+    const { OutputFormatter } = require("../utils/output");
+    const { createLogger, LogLevel } = require("../utils/logger");
+    const { createErrorHandler } = require("../core/errors/handler");
+    
+    const formatter = new OutputFormatter();
+    const logger = createLogger({ level: LogLevel.ERROR });
+    const errorHandler = createErrorHandler(formatter, logger);
+    
+    const command = new InitCommand(formatter, logger, errorHandler);
+
     if (!options.quiet) {
       console.log("⏳ Initializing JARVIS memory system...");
     }
@@ -325,6 +344,14 @@ function displayInitResult(result: InitResult, options: InitOptions): void {
 
 // Keep legacy parseInitArgs for tests
 export function parseInitArgs(args: string[]): InitOptions {
-  const command = new InitCommand();
+  const { OutputFormatter } = require("../utils/output");
+  const { createLogger, LogLevel } = require("../utils/logger");
+  const { createErrorHandler } = require("../core/errors/handler");
+  
+  const formatter = new OutputFormatter();
+  const logger = createLogger({ level: LogLevel.ERROR });
+  const errorHandler = createErrorHandler(formatter, logger);
+  
+  const command = new InitCommand(formatter, logger, errorHandler);
   return command.parse(args);
 }

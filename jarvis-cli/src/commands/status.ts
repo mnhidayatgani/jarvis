@@ -16,8 +16,19 @@ import type {
 } from "./base/types";
 import { getDefaultClient } from "../api/mcp-client";
 import { NotInitializedError } from "../core/errors";
+import type { IOutputFormatter } from "../utils/output.js";
+import type { Logger } from "../utils/logger.js";
+import type { ErrorHandler } from "../core/errors/handler.js";
 
 export class StatusCommand extends BaseCommand<StatusOptions, StatusResult> {
+  constructor(
+    formatter: IOutputFormatter,
+    logger: Logger,
+    errorHandler: ErrorHandler
+  ) {
+    super(formatter, logger, errorHandler);
+  }
+
   parse(args: string[]): StatusOptions {
     const options: StatusOptions = {};
 
@@ -136,21 +147,35 @@ export class StatusCommand extends BaseCommand<StatusOptions, StatusResult> {
 
 // Legacy export for backward compatibility
 export async function handleStatusCommand(
-  options: StatusOptions = {}
+  options: StatusOptions
 ): Promise<void> {
-  const command = new StatusCommand();
-  const result = await command.run([
-    ...(options.verbose ? ["--verbose"] : []),
-    ...(options.json ? ["--json"] : []),
-  ]);
+  try {
+    const { OutputFormatter } = require("../utils/output");
+    const { createLogger, LogLevel } = require("../utils/logger");
+    const { createErrorHandler } = require("../core/errors/handler");
+    
+    const formatter = new OutputFormatter();
+    const logger = createLogger({ level: LogLevel.ERROR });
+    const errorHandler = createErrorHandler(formatter, logger);
+    
+    const command = new StatusCommand(formatter, logger, errorHandler);
+    
+    const result = await command.run([
+      ...(options.verbose ? ["--verbose"] : []),
+      ...(options.json ? ["--json"] : []),
+    ]);
 
-  // Display output (keeping original format)
-  if (options.json) {
-    console.log(JSON.stringify(result, null, 2));
-    return;
+    // Display output (keeping original format)
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+
+    displayStatus(result, options);
+  } catch (error) {
+    console.error(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    process.exit(1);
   }
-
-  displayStatus(result, options);
 }
 
 function displayStatus(stats: StatusResult, options: StatusOptions): void {
@@ -211,6 +236,14 @@ function displayStatus(stats: StatusResult, options: StatusOptions): void {
 
 // Keep legacy parseStatusArgs for tests
 export function parseStatusArgs(args: string[]): StatusOptions {
-  const command = new StatusCommand();
+  const { OutputFormatter } = require("../utils/output");
+  const { createLogger, LogLevel } = require("../utils/logger");
+  const { createErrorHandler } = require("../core/errors/handler");
+  
+  const formatter = new OutputFormatter();
+  const logger = createLogger({ level: LogLevel.ERROR });
+  const errorHandler = createErrorHandler(formatter, logger);
+  
+  const command = new StatusCommand(formatter, logger, errorHandler);
   return command.parse(args);
 }

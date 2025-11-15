@@ -7,8 +7,19 @@ import { BaseCommand } from "./base/command";
 import type { ScanOptions, ScanResult, CodebaseAnalysis } from "./base/types";
 import { getDefaultClient } from "../api/mcp-client";
 import { MCPConnectionError, InternalError } from "../core/errors";
+import type { IOutputFormatter } from "../utils/output.js";
+import type { Logger } from "../utils/logger.js";
+import type { ErrorHandler } from "../core/errors/handler.js";
 
 export class ScanCommand extends BaseCommand<ScanOptions, ScanResult> {
+  constructor(
+    formatter: IOutputFormatter,
+    logger: Logger,
+    errorHandler: ErrorHandler
+  ) {
+    super(formatter, logger, errorHandler);
+  }
+
   parse(args: string[]): ScanOptions {
     const options: ScanOptions = {};
 
@@ -78,11 +89,19 @@ export class ScanCommand extends BaseCommand<ScanOptions, ScanResult> {
 
 // Legacy export for backward compatibility
 export async function handleScanCommand(
-  options: ScanOptions = {}
+  options: ScanOptions
 ): Promise<void> {
-  const command = new ScanCommand();
-  
   try {
+    const { OutputFormatter } = require("../utils/output");
+    const { createLogger, LogLevel } = require("../utils/logger");
+    const { createErrorHandler } = require("../core/errors/handler");
+    
+    const formatter = new OutputFormatter();
+    const logger = createLogger({ level: LogLevel.ERROR });
+    const errorHandler = createErrorHandler(formatter, logger);
+    
+    const command = new ScanCommand(formatter, logger, errorHandler);
+  
     if (!options.quiet) {
       console.log("⏳ Analyzing codebase...");
     }
@@ -197,6 +216,14 @@ function displayScanResult(result: ScanResult, options: ScanOptions): void {
 
 // Keep legacy parseScanArgs for tests
 export function parseScanArgs(args: string[]): ScanOptions {
-  const command = new ScanCommand();
+  const { OutputFormatter } = require("../utils/output");
+  const { createLogger, LogLevel } = require("../utils/logger");
+  const { createErrorHandler } = require("../core/errors/handler");
+  
+  const formatter = new OutputFormatter();
+  const logger = createLogger({ level: LogLevel.ERROR });
+  const errorHandler = createErrorHandler(formatter, logger);
+  
+  const command = new ScanCommand(formatter, logger, errorHandler);
   return command.parse(args);
 }

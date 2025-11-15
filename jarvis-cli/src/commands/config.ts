@@ -18,6 +18,9 @@ import {
   MissingArgumentError,
   InvalidArgumentError,
 } from "../core/errors";
+import type { IOutputFormatter } from "../utils/output.js";
+import type { Logger } from "../utils/logger.js";
+import type { ErrorHandler } from "../core/errors/handler.js";
 
 const VALID_CONFIG_KEYS: (keyof UserConfig)[] = [
   "language",
@@ -26,6 +29,14 @@ const VALID_CONFIG_KEYS: (keyof UserConfig)[] = [
 ];
 
 export class ConfigCommand extends BaseCommand<ConfigOptions, ConfigResult> {
+  constructor(
+    formatter: IOutputFormatter,
+    logger: Logger,
+    errorHandler: ErrorHandler
+  ) {
+    super(formatter, logger, errorHandler);
+  }
+
   parse(args: string[]): ConfigOptions {
     const options: ConfigOptions = {};
 
@@ -142,7 +153,15 @@ export class ConfigCommand extends BaseCommand<ConfigOptions, ConfigResult> {
 // Legacy export for backward compatibility
 export default function handleConfigCommand(args: string[]): void {
   try {
-    const command = new ConfigCommand();
+    const { OutputFormatter } = require("../utils/output");
+    const { createLogger, LogLevel } = require("../utils/logger");
+    const { createErrorHandler } = require("../core/errors/handler");
+    
+    const formatter = new OutputFormatter();
+    const logger = createLogger({ level: LogLevel.ERROR });
+    const errorHandler = createErrorHandler(formatter, logger);
+    
+    const command = new ConfigCommand(formatter, logger, errorHandler);
     command.run(args).then((result) => {
       displayConfigResult(result);
     });

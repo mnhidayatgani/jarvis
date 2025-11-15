@@ -9,8 +9,19 @@ import { BaseCommand } from "./base/command";
 import type { DoctorOptions, DoctorResult, HealthCheckItem } from "./base/types";
 import { getDefaultClient } from "../api/mcp-client";
 import { NotInitializedError } from "../core/errors";
+import type { IOutputFormatter } from "../utils/output.js";
+import type { Logger } from "../utils/logger.js";
+import type { ErrorHandler } from "../core/errors/handler.js";
 
 export class DoctorCommand extends BaseCommand<DoctorOptions, DoctorResult> {
+  constructor(
+    formatter: IOutputFormatter,
+    logger: Logger,
+    errorHandler: ErrorHandler
+  ) {
+    super(formatter, logger, errorHandler);
+  }
+
   parse(args: string[]): DoctorOptions {
     const options: DoctorOptions = {};
 
@@ -150,11 +161,19 @@ export class DoctorCommand extends BaseCommand<DoctorOptions, DoctorResult> {
 
 // Legacy export for backward compatibility
 export async function handleDoctorCommand(
-  options: DoctorOptions = {}
+  options: DoctorOptions
 ): Promise<void> {
-  const command = new DoctorCommand();
-
   try {
+    const { OutputFormatter } = require("../utils/output");
+    const { createLogger, LogLevel } = require("../utils/logger");
+    const { createErrorHandler } = require("../core/errors/handler");
+    
+    const formatter = new OutputFormatter();
+    const logger = createLogger({ level: LogLevel.ERROR });
+    const errorHandler = createErrorHandler(formatter, logger);
+    
+    const command = new DoctorCommand(formatter, logger, errorHandler);
+
     if (!options.quiet) {
       console.log("⏳ Running system diagnostics...");
     }
@@ -281,6 +300,14 @@ function displayDetails(details: unknown, indent: string = ""): void {
 
 // Keep legacy parseDoctorArgs for tests
 export function parseDoctorArgs(args: string[]): DoctorOptions {
-  const command = new DoctorCommand();
+  const { OutputFormatter } = require("../utils/output");
+  const { createLogger, LogLevel } = require("../utils/logger");
+  const { createErrorHandler } = require("../core/errors/handler");
+  
+  const formatter = new OutputFormatter();
+  const logger = createLogger({ level: LogLevel.ERROR });
+  const errorHandler = createErrorHandler(formatter, logger);
+  
+  const command = new DoctorCommand(formatter, logger, errorHandler);
   return command.parse(args);
 }

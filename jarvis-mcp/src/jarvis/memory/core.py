@@ -4,6 +4,7 @@ Manages SQLite and ChromaDB connections for the 3-layer memory architecture.
 Provides MemoryCore class to orchestrate all memory layers.
 """
 
+import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -22,6 +23,8 @@ from sqlalchemy.engine import Engine
 
 from jarvis.core.types import MemoryEntry, SearchResult
 from jarvis.memory.base import BaseMemory
+
+logger = logging.getLogger(__name__)
 
 
 def get_project_memory_path(project_path: str) -> Path:
@@ -182,10 +185,11 @@ class MemoryCore:
         file_path: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> str:
-        """Store memory entry across factual and semantic layers.
+        """Store memory entry across factual and semantic layers with graceful degradation.
 
         Stores the entry in both factual (L1) and semantic (L2) layers
-        for comprehensive retrieval. Snapshot layer is used separately
+        for comprehensive retrieval. If one layer fails, the entry is still
+        stored in the other layer(s). Snapshot layer is used separately
         for code diffs.
 
         Args:
@@ -199,7 +203,7 @@ class MemoryCore:
             Entry ID (same across both layers).
 
         Raises:
-            RuntimeError: If memory layers are not initialized.
+            RuntimeError: If memory layers are not initialized or all layers fail.
             ValueError: If content validation fails.
         """
         if not self.is_initialized():
@@ -223,9 +227,48 @@ class MemoryCore:
             metadata=metadata or {},
         )
 
-        # Store in both factual and semantic layers using BaseMemory interface
-        self.factual.store(entry)
-        self.semantic.store(entry)
+        # Track which layers succeeded
+        successful_layers: list[str] = []
+        failed_layers: list[str] = []
+
+        # Store in factual layer with error handling
+        try:
+            self.factual.store(entry)
+            successful_layers.append("factual")
+            logger.debug(f"Successfully stored entry {entry_id} in factual layer")
+        except Exception as e:
+            failed_layers.append("factual")
+            logger.warning(
+                f"Failed to store entry {entry_id} in factual layer: {e}",
+                exc_info=True
+            )
+
+        # Store in semantic layer with error handling
+        try:
+            self.semantic.store(entry)
+            successful_layers.append("semantic")
+            logger.debug(f"Successfully stored entry {entry_id} in semantic layer")
+        except Exception as e:
+            failed_layers.append("semantic")
+            logger.warning(
+                f"Failed to store entry {entry_id} in semantic layer: {e}",
+                exc_info=True
+            )
+
+        # If all layers failed, raise error
+        if not successful_layers:
+            raise RuntimeError(
+                f"Failed to store entry in any memory layer. "
+                f"Failures: {', '.join(failed_layers)}"
+            )
+
+        # Log partial success if any layer failed
+        if failed_layers:
+            logger.warning(
+                f"Entry {entry_id} stored with partial success. "
+                f"Successful: {', '.join(successful_layers)}, "
+                f"Failed: {', '.join(failed_layers)}"
+            )
 
         return entry_id
 
@@ -236,10 +279,11 @@ class MemoryCore:
         memory_type: str | None = None,
         filters: dict[str, Any] | None = None,
     ) -> list[SearchResult]:
-        """Search across all memory layers and merge results.
+        """Search across all memory layers and merge results with graceful degradation.
 
         Searches both factual (keyword) and semantic (vector similarity)
-        layers, then merges and ranks results by relevance.
+        layers, then merges and ranks results by relevance. If one layer
+        fails, results from the other layer are still returned.
 
         Args:
             query: Search query.
@@ -251,7 +295,7 @@ class MemoryCore:
             List of SearchResult objects sorted by relevance score.
 
         Raises:
-            RuntimeError: If memory layers are not initialized.
+            RuntimeError: If memory layers are not initialized or all layers fail.
         """
         if not self.is_initialized():
             raise RuntimeError(
@@ -263,9 +307,49 @@ class MemoryCore:
         if memory_type:
             search_filters["type"] = memory_type
 
-        # Search both layers using BaseMemory interface
-        factual_results = list(self.factual.search(query, limit=limit, filters=search_filters))
-        semantic_results = list(self.semantic.search(query, limit=limit, filters=search_filters))
+        # Search layers with error handling
+        factual_results: list[MemoryEntry] = []
+        semantic_results: list[MemoryEntry] = []
+        failed_layers: list[str] = []
+
+        # Search factual layer
+        try:
+            factual_results = list(self.factual.search(query, limit=limit, filters=search_filters))
+            logger.debug(f"Found {len(factual_results)} results in factual layer")
+        except Exception as e:
+            failed_layers.append("factual")
+            logger.warning(
+                f"Failed to search factual layer for query '{query}': {e}",
+                exc_info=True
+            )
+
+        # Search semantic layer
+        try:
+            semantic_results = list(self.semantic.search(query, limit=limit, filters=search_filters))
+            logger.debug(f"Found {len(semantic_results)} results in semantic layer")
+        except Exception as e:
+            failed_layers.append("semantic")
+            logger.warning(
+                f"Failed to search semantic layer for query '{query}': {e}",
+                exc_info=True
+            )
+
+        # If all layers failed, raise error
+        if not factual_results and not semantic_results:
+            if failed_layers:
+                raise RuntimeError(
+                    f"Failed to search any memory layer. "
+                    f"Failures: {', '.join(failed_layers)}"
+                )
+            # No failures but no results - return empty list
+            logger.info(f"No results found for query '{query}'")
+            return []
+
+        # Log partial success if any layer failed
+        if failed_layers:
+            logger.warning(
+                f"Search completed with partial success. Failed layers: {', '.join(failed_layers)}"
+            )
 
         # Merge results and create SearchResult objects
         # Use a dict to deduplicate by entry ID

@@ -11,8 +11,19 @@ import {
   MCPConnectionError,
   InternalError,
 } from "../core/errors";
+import type { IOutputFormatter } from "../utils/output.js";
+import type { Logger } from "../utils/logger.js";
+import type { ErrorHandler } from "../core/errors/handler.js";
 
 export class RecallCommand extends BaseCommand<RecallOptions, RecallResult> {
+  constructor(
+    formatter: IOutputFormatter,
+    logger: Logger,
+    errorHandler: ErrorHandler
+  ) {
+    super(formatter, logger, errorHandler);
+  }
+
   parse(args: string[]): RecallOptions {
     const options: RecallOptions = {};
     const queryParts: string[] = [];
@@ -174,11 +185,19 @@ export class RecallCommand extends BaseCommand<RecallOptions, RecallResult> {
 // Legacy export for backward compatibility
 export async function handleRecallCommand(
   query: string,
-  options: RecallOptions = {}
+  options: RecallOptions
 ): Promise<void> {
-  const command = new RecallCommand();
-
   try {
+    const { OutputFormatter } = require("../utils/output");
+    const { createLogger, LogLevel } = require("../utils/logger");
+    const { createErrorHandler } = require("../core/errors/handler");
+    
+    const formatter = new OutputFormatter();
+    const logger = createLogger({ level: LogLevel.ERROR });
+    const errorHandler = createErrorHandler(formatter, logger);
+    
+    const command = new RecallCommand(formatter, logger, errorHandler);
+
     if (!options.quiet) {
       console.log(options.id ? `⏳ Retrieving memory ${options.id}...` : "⏳ Searching JARVIS memory...");
     }
@@ -295,7 +314,15 @@ export function parseRecallArgs(args: string[]): {
   query: string;
   options: RecallOptions;
 } {
-  const command = new RecallCommand();
+  const { OutputFormatter } = require("../utils/output");
+  const { createLogger, LogLevel } = require("../utils/logger");
+  const { createErrorHandler } = require("../core/errors/handler");
+  
+  const formatter = new OutputFormatter();
+  const logger = createLogger({ level: LogLevel.ERROR });
+  const errorHandler = createErrorHandler(formatter, logger);
+  
+  const command = new RecallCommand(formatter, logger, errorHandler);
   const parsed = command.parse(args);
   return { query: parsed.query || "", options: parsed };
 }

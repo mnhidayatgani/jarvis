@@ -60,16 +60,59 @@ export interface ValidateChangesParams {
   changes?: unknown[];
 }
 
+/**
+ * Retry configuration for MCP client
+ */
+export interface RetryConfig {
+  /**
+   * Maximum number of retry attempts
+   */
+  maxRetries?: number;
+
+  /**
+   * Initial delay in milliseconds
+   */
+  initialDelay?: number;
+
+  /**
+   * Maximum delay in milliseconds
+   */
+  maxDelay?: number;
+
+  /**
+   * Backoff multiplier
+   */
+  backoffMultiplier?: number;
+
+  /**
+   * Whether to retry on specific error codes
+   */
+  retryableErrors?: string[];
+}
+
 export class MCPClient {
   private readonly serverUrl: string;
   private readonly timeout: number;
+  private readonly retryConfig: Required<RetryConfig>;
 
   constructor(
     serverUrl: string = 'http://localhost:3000',
-    timeout: number = 30000
+    timeout: number = 30000,
+    retryConfig?: RetryConfig
   ) {
     this.serverUrl = serverUrl;
     this.timeout = timeout;
+    this.retryConfig = {
+      maxRetries: retryConfig?.maxRetries ?? 3,
+      initialDelay: retryConfig?.initialDelay ?? 1000,
+      maxDelay: retryConfig?.maxDelay ?? 10000,
+      backoffMultiplier: retryConfig?.backoffMultiplier ?? 2,
+      retryableErrors: retryConfig?.retryableErrors ?? [
+        "NETWORK_ERROR",
+        "TIMEOUT_ERROR",
+        "MCP_CONNECTION_ERROR",
+      ],
+    };
   }
 
   /**
@@ -259,7 +302,7 @@ export class MCPClient {
   }
 
   /**
-   * Make HTTP request to MCP server
+   * Make HTTP request to MCP server with retry logic
    * 
    * @param endpoint - API endpoint path
    * @param data - Request data (must be JSON-serializable)
@@ -267,6 +310,22 @@ export class MCPClient {
    * @internal Reserved for future HTTP client implementation
    */
   private async makeRequest(
+    endpoint: string,
+    data: Record<string, unknown>
+  ): Promise<MCPResponse> {
+    return this.retryWithBackoff(async () => {
+      return this.makeRequestInternal(endpoint, data);
+    });
+  }
+
+  /**
+   * Internal request method (without retry)
+   * 
+   * @param endpoint - API endpoint path
+   * @param data - Request data
+   * @returns Promise resolving to MCP response
+   */
+  private async makeRequestInternal(
     endpoint: string,
     data: Record<string, unknown>
   ): Promise<MCPResponse> {
@@ -286,6 +345,76 @@ export class MCPClient {
       },
       message: "Note: This is a mock response. MCP server implementation pending.",
     };
+  }
+
+  /**
+   * Retry operation with exponential backoff
+   * 
+   * @param operation - Async operation to retry
+   * @returns Promise resolving to operation result
+   * @throws Last error if all retries exhausted
+   */
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>
+  ): Promise<T> {
+    let lastError: Error | null = null;
+    let delay = this.retryConfig.initialDelay;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Check if error is retryable
+        const isRetryable = this.isRetryableError(lastError);
+
+        // If not retryable or max retries reached, throw
+        if (!isRetryable || attempt === this.retryConfig.maxRetries) {
+          throw lastError;
+        }
+
+        // Wait before retrying with exponential backoff
+        await this.sleep(delay);
+
+        // Calculate next delay (exponential backoff with cap)
+        delay = Math.min(
+          delay * this.retryConfig.backoffMultiplier,
+          this.retryConfig.maxDelay
+        );
+      }
+    }
+
+    // Should never reach here, but TypeScript needs this
+    throw lastError || new Error("Retry failed");
+  }
+
+  /**
+   * Check if error is retryable
+   * 
+   * @param error - Error to check
+   * @returns True if error should be retried
+   */
+  private isRetryableError(error: Error): boolean {
+    // Check if error message contains retryable error codes
+    const errorMessage = error.message.toLowerCase();
+    
+    return this.retryConfig.retryableErrors.some((code) =>
+      errorMessage.includes(code.toLowerCase())
+    ) ||
+    errorMessage.includes("network") ||
+    errorMessage.includes("timeout") ||
+    errorMessage.includes("connection");
+  }
+
+  /**
+   * Sleep for specified milliseconds
+   * 
+   * @param ms - Milliseconds to sleep
+   * @returns Promise that resolves after delay
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

@@ -27,21 +27,24 @@ from jarvis.memory.semantic import SemanticMemory
 from jarvis.utils.config import Configuration
 from jarvis.utils.embeddings import EmbeddingsWrapper
 from jarvis.utils.persona import JarvisPersona
+from jarvis.mcp.error_handler import ErrorHandler, create_error_handler
 
 
 class MCPTools:
     """MCP Tools implementation for JARVIS memory operations."""
 
-    def __init__(self, project_root: Path) -> None:
+    def __init__(self, project_root: Path, error_handler: ErrorHandler | None = None) -> None:
         """Initialize MCP tools with project context.
 
         Args:
             project_root: Path to project root directory.
+            error_handler: Optional error handler instance (creates default if None).
         """
         self.project_root = project_root
         self.config = Configuration(project_root)
         self.persona = JarvisPersona()
         self.embeddings = EmbeddingsWrapper()
+        self.error_handler = error_handler or create_error_handler()
 
         # Get project ID
         self.project_id = self.config.generate_project_id()
@@ -139,11 +142,10 @@ class MCPTools:
             }
 
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "message": self.persona.format_error(f"Failed to store memory: {str(e)}"),
-            }
+            return self.error_handler.handle(
+                e,
+                context={"tool": "remember_context", "content_length": len(content), "type": type}
+            )
 
     def recall_context(
         self,
@@ -236,11 +238,10 @@ class MCPTools:
             }
 
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "message": self.persona.format_error(f"Failed to recall memory: {str(e)}"),
-            }
+            return self.error_handler.handle(
+                e,
+                context={"tool": "recall_context", "query": query, "limit": limit}
+            )
 
     def _generate_memory_id(self, content: str) -> str:
         """Generate unique memory ID from content and timestamp.
@@ -344,11 +345,10 @@ class MCPTools:
             }
 
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "message": self.persona.format_error(f"Analysis failed: {str(e)}"),
-            }
+            return self.error_handler.handle(
+                e,
+                context={"tool": "analyze_codebase", "project_root": str(self.project_root)}
+            )
 
     def _detect_tech_stack(self) -> list[str]:
         """Detect technologies from project files."""
