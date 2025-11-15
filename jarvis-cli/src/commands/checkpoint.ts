@@ -3,6 +3,7 @@
  */
 
 import { getDefaultClient } from '../api/mcp-client'
+import { MissingArgumentError, MCPConnectionError, InternalError } from '../core/errors'
 
 export interface CheckpointOptions {
   list?: boolean
@@ -71,9 +72,7 @@ export async function handleCheckpoint(
 
     // Create checkpoint
     if (!reason) {
-      console.error('Error: Checkpoint reason is required')
-      console.error('Usage: jarvis checkpoint "reason for checkpoint"')
-      process.exit(1)
+      throw new MissingArgumentError('reason')
     }
 
     const result = await mcpClient.callTool('create_checkpoint', {
@@ -143,10 +142,20 @@ export async function handleCheckpoint(
           error: error.message,
         }),
       )
-    } else {
-      console.error('\n❌ Checkpoint creation failed, Sir.')
-      console.error(`   Error: ${error.message}\n`)
+      process.exit(1)
     }
-    process.exit(1)
+    // Re-throw as MCPConnectionError or InternalError based on error type
+    if (error.message?.includes('MCP') || error.message?.includes('connection')) {
+      throw new MCPConnectionError(
+        'Failed to create checkpoint',
+        'unknown',
+        error
+      )
+    }
+    throw new InternalError(
+      `Checkpoint creation failed: ${error.message}`,
+      undefined,
+      error
+    )
   }
 }

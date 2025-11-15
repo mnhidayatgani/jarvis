@@ -3,6 +3,7 @@
  */
 
 import { getDefaultClient } from '../api/mcp-client'
+import { MissingArgumentError, InvalidArgumentError, MCPConnectionError, InternalError } from '../core/errors'
 
 export interface CleanupOptions {
   json?: boolean
@@ -23,10 +24,7 @@ export async function handleCleanup(
     const mcpClient = getDefaultClient()
 
     if (!target) {
-      console.error('Error: Cleanup target required')
-      console.error('Usage: jarvis cleanup <target>')
-      console.error('Targets: memory, checkpoints, all')
-      process.exit(1)
+      throw new MissingArgumentError('target')
     }
 
     if (options.dryRun && !options.json) {
@@ -116,9 +114,11 @@ export async function handleCleanup(
       }
 
       default:
-        console.error(`Error: Unknown cleanup target "${target}"`)
-        console.error('Valid targets: memory, checkpoints, all')
-        process.exit(1)
+        throw new InvalidArgumentError(
+          'target',
+          target,
+          'Valid targets: memory, checkpoints, all'
+        )
     }
   } catch (error: any) {
     if (options.json) {
@@ -128,10 +128,24 @@ export async function handleCleanup(
           error: error.message,
         }),
       )
-    } else {
-      console.error('\n❌ Cleanup failed, Sir.')
-      console.error(`   Error: ${error.message}\n`)
+      process.exit(1)
     }
-    process.exit(1)
+    // Re-throw validation errors as-is
+    if (error instanceof MissingArgumentError || error instanceof InvalidArgumentError) {
+      throw error
+    }
+    // Re-throw as MCPConnectionError or InternalError based on error type
+    if (error.message?.includes('MCP') || error.message?.includes('connection')) {
+      throw new MCPConnectionError(
+        'Failed to cleanup resources',
+        'unknown',
+        error
+      )
+    }
+    throw new InternalError(
+      `Cleanup failed: ${error.message}`,
+      undefined,
+      error
+    )
   }
 }

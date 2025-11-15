@@ -3,6 +3,7 @@
  */
 
 import { getDefaultClient } from '../api/mcp-client'
+import { MCPConnectionError, InternalError, ValidationError } from '../core/errors'
 
 export interface ValidateOptions {
   json?: boolean
@@ -62,7 +63,15 @@ export async function handleValidate(options: ValidateOptions): Promise<void> {
     )
 
     if (!result.data.overall_passed) {
-      process.exit(1)
+      const failedChecks = result.data.results
+        .filter((check: any) => !check.passed)
+        .map((check: any) => check.tool)
+        .join(', ')
+      throw new ValidationError(
+        `Validation checks failed: ${failedChecks}`,
+        'validation',
+        result.data.results.filter((check: any) => !check.passed)
+      )
     }
   } catch (error: any) {
     if (options.json) {
@@ -72,10 +81,24 @@ export async function handleValidate(options: ValidateOptions): Promise<void> {
           error: error.message,
         }),
       )
-    } else {
-      console.error('\n❌ Validation failed, Sir.')
-      console.error(`   Error: ${error.message}\n`)
+      process.exit(1)
     }
-    process.exit(1)
+    // Re-throw validation errors as-is
+    if (error instanceof ValidationError) {
+      throw error
+    }
+    // Re-throw as MCPConnectionError or InternalError based on error type
+    if (error.message?.includes('MCP') || error.message?.includes('connection')) {
+      throw new MCPConnectionError(
+        'Failed to run validation checks',
+        'unknown',
+        error
+      )
+    }
+    throw new InternalError(
+      `Validation failed: ${error.message}`,
+      undefined,
+      error
+    )
   }
 }

@@ -3,6 +3,7 @@
  */
 
 import { getDefaultClient } from '../api/mcp-client'
+import { MCPConnectionError, InternalError } from '../core/errors'
 
 export interface RollbackOptions {
   keep?: boolean
@@ -65,13 +66,20 @@ export async function handleRollback(
           error: error.message,
         }),
       )
-    } else {
-      console.error('\n❌ Rollback failed, Sir.')
-      console.error(`   Error: ${error.message}`)
-      console.error(
-        '\n   Your working directory has been preserved. Please resolve any conflicts manually.\n',
+      process.exit(1)
+    }
+    // Re-throw as MCPConnectionError or InternalError based on error type
+    if (error.message?.includes('MCP') || error.message?.includes('connection')) {
+      throw new MCPConnectionError(
+        'Failed to rollback checkpoint. Your working directory has been preserved.',
+        'unknown',
+        error
       )
     }
-    process.exit(1)
+    throw new InternalError(
+      `Rollback failed: ${error.message}. Your working directory has been preserved.`,
+      undefined,
+      error
+    )
   }
 }
