@@ -930,8 +930,22 @@ async function handleStatusCommand(options = {}) {
       directory: jarvisDir,
       databases: checkDatabases(jarvisDir),
       config: checkConfig(jarvisDir),
-      project: checkProject(jarvisDir)
+      project: checkProject(jarvisDir),
+      memory: null
     };
+    try {
+      const client = getDefaultClient();
+      const memoryStats = await client.callTool("get_memory_status", {
+        project_path: process.cwd()
+      });
+      if (memoryStats.success && memoryStats.data) {
+        stats.memory = memoryStats.data;
+      }
+    } catch (error) {
+      if (options.verbose) {
+        console.warn("Could not fetch memory stats from MCP server");
+      }
+    }
     if (options.json) {
       console.log(JSON.stringify(stats, null, 2));
       return;
@@ -943,13 +957,32 @@ async function handleStatusCommand(options = {}) {
     console.log(`Location: ${process.cwd()}`);
     console.log();
     console.log("\u{1F4BE} Databases:");
-    console.log(`  SQLite: ${stats.databases.sqlite ? "\u2713" : "\u2717"} ${stats.databases.sqliteSize || ""}`);
+    console.log(
+      `  SQLite: ${stats.databases.sqlite ? "\u2713" : "\u2717"} ${stats.databases.sqliteSize || ""}`
+    );
     console.log(`  ChromaDB: ${stats.databases.chroma ? "\u2713" : "\u2717"}`);
     console.log();
-    if (options.verbose && stats.databases.sqlite) {
+    if (stats.memory) {
       console.log("\u{1F4DD} Memory:");
-      console.log("  Factual entries: (query needed)");
-      console.log("  Semantic entries: (query needed)");
+      console.log(`  Total entries: ${stats.memory.total_entries || 0}`);
+      if (options.verbose) {
+        console.log(`  Decisions: ${stats.memory.decisions || 0}`);
+        console.log(`  Notes: ${stats.memory.notes || 0}`);
+        if (stats.memory.last_activity) {
+          const lastDate = new Date(stats.memory.last_activity).toLocaleString();
+          console.log(`  Last activity: ${lastDate}`);
+        }
+        console.log(`  Disk usage: ${stats.memory.disk_usage_mb || 0} MB`);
+        if (stats.memory.collections) {
+          const collections = Object.entries(stats.memory.collections);
+          if (collections.length > 0) {
+            console.log(`  Collections:`);
+            collections.forEach(([name, count]) => {
+              console.log(`    - ${name}: ${count}`);
+            });
+          }
+        }
+      }
       console.log();
     }
     console.log("\u2699\uFE0F  Configuration:");
@@ -1035,118 +1068,195 @@ import { resolve as resolve3 } from "path";
 async function handleDoctorCommand(options = {}) {
   const output = getFormatter(options);
   try {
-    const checks = [];
+    if (!options.quiet) {
+      output.progress("Running system diagnostics...");
+    }
     const jarvisDir = resolve3(process.cwd(), ".jarvis");
-    if (existsSync4(jarvisDir)) {
-      checks.push({
-        name: "JARVIS Initialized",
-        status: "pass",
-        message: ".jarvis directory exists"
-      });
-    } else {
-      checks.push({
-        name: "JARVIS Initialized",
-        status: "fail",
-        message: ".jarvis directory not found - run: jarvis init"
-      });
+    if (!existsSync4(jarvisDir)) {
+      output.error("JARVIS not initialized in this directory");
+      console.log("Run: jarvis init");
+      process.exit(1);
     }
-    const sqlitePath = resolve3(jarvisDir, "db", "memory.db");
-    if (existsSync4(sqlitePath)) {
-      checks.push({
-        name: "SQLite Database",
-        status: "pass",
-        message: "Database file exists"
+    let healthData = null;
+    try {
+      const client = getDefaultClient();
+      const result = await client.callTool("run_health_checks", {
+        project_path: process.cwd()
       });
-    } else {
-      checks.push({
-        name: "SQLite Database",
-        status: "fail",
-        message: "Database file missing"
-      });
-    }
-    const chromaPath = resolve3(jarvisDir, "db", "chroma");
-    if (existsSync4(chromaPath)) {
-      checks.push({
-        name: "ChromaDB",
-        status: "pass",
-        message: "ChromaDB directory exists"
-      });
-    } else {
-      checks.push({
-        name: "ChromaDB",
-        status: "warn",
-        message: "ChromaDB directory missing - will be created on first use"
-      });
-    }
-    const configPath = resolve3(jarvisDir, "config.json");
-    if (existsSync4(configPath)) {
-      checks.push({
-        name: "Configuration",
-        status: "pass",
-        message: "Config file exists"
-      });
-    } else {
-      checks.push({
-        name: "Configuration",
-        status: "warn",
-        message: "Config file missing - using defaults"
-      });
-    }
-    if (existsSync4(resolve3(process.cwd(), ".git"))) {
-      checks.push({
-        name: "Git Repository",
-        status: "pass",
-        message: "Git repository detected"
-      });
-    } else {
-      checks.push({
-        name: "Git Repository",
-        status: "warn",
-        message: "Not a git repository - auto-capture will be limited"
-      });
-    }
-    checks.push({
-      name: "Disk Space",
-      status: "pass",
-      message: "Sufficient disk space (check not implemented)"
-    });
-    if (options.json) {
-      console.log(JSON.stringify({ checks }, null, 2));
-      return;
-    }
-    console.log("\n\u{1F3E5} JARVIS Health Check\n");
-    const passCount = checks.filter((c) => c.status === "pass").length;
-    const failCount = checks.filter((c) => c.status === "fail").length;
-    const warnCount = checks.filter((c) => c.status === "warn").length;
-    for (const check of checks) {
-      const icon = check.status === "pass" ? "\u2713" : check.status === "fail" ? "\u2717" : "\u26A0";
-      const color = check.status === "pass" ? "\x1B[32m" : check.status === "fail" ? "\x1B[31m" : "\x1B[33m";
-      const reset = "\x1B[0m";
-      console.log(`${color}${icon}${reset} ${check.name}`);
-      if (options.verbose || check.status !== "pass") {
-        console.log(`  ${check.message}`);
+      if (result.success && result.data) {
+        healthData = result.data;
+      }
+    } catch (error) {
+      if (options.verbose) {
+        console.warn("MCP server unavailable, using basic checks");
       }
     }
-    console.log();
-    console.log(
-      `Summary: ${passCount} passed, ${warnCount} warnings, ${failCount} failed`
-    );
-    console.log();
-    if (failCount > 0) {
-      output.error("Health check failed");
-      process.exit(1);
-    } else if (warnCount > 0) {
-      output.info("Health check passed with warnings", false);
+    if (options.json) {
+      console.log(JSON.stringify(healthData || {}, null, 2));
+      return;
+    }
+    console.log("\n\u{1F3E5} JARVIS System Diagnostics\n");
+    if (healthData) {
+      const statusIcon = healthData.overall === "healthy" ? "\u2705" : "\u26A0\uFE0F";
+      const statusText = healthData.overall === "healthy" ? "All systems operational" : "Issues detected";
+      console.log(`${statusIcon} Status: ${statusText}`);
+      console.log(
+        `   ${healthData.passed} passed, ${healthData.failed} failed, ${healthData.warnings} warnings`
+      );
+      console.log();
+      const checks = healthData.checks || {};
+      displayCheck("Python Version", checks.python_version, options.verbose);
+      displayCheck("Dependencies", checks.dependencies, options.verbose);
+      displayCheck("Databases", checks.databases, options.verbose);
+      displayCheck("Disk Space", checks.disk_space, options.verbose);
+      displayCheck("Permissions", checks.permissions, options.verbose);
+      displayCheck("Git Repository", checks.git, options.verbose);
+      console.log();
+      if (healthData.overall === "healthy") {
+        output.success("System healthy");
+        process.exit(0);
+      } else if (healthData.failed > 0) {
+        output.error("System has critical issues");
+        process.exit(1);
+      } else {
+        console.log("\u26A0\uFE0F  System has warnings but is operational");
+        process.exit(0);
+      }
     } else {
-      output.success("All health checks passed");
+      const checks = runBasicChecks(jarvisDir);
+      displayBasicChecks(checks, options.verbose || false);
+      const failCount = checks.filter((c) => c.status === "fail").length;
+      if (failCount > 0) {
+        output.error("Health check failed");
+        process.exit(1);
+      } else {
+        output.success("Basic health checks passed");
+      }
     }
   } catch (error) {
     output.error(
-      "Health check failed",
+      "Failed to run diagnostics",
       error instanceof Error ? error : void 0
     );
     process.exit(1);
   }
+}
+function displayCheck(name, check, verbose = false) {
+  if (!check) {
+    return;
+  }
+  const icon = getStatusIcon(check.status);
+  console.log(`${icon} ${name}`);
+  if (check.message) {
+    console.log(`   ${check.message}`);
+  }
+  if (verbose && check.details) {
+    displayDetails(check.details, "   ");
+  }
+  console.log();
+}
+function getStatusIcon(status) {
+  switch (status) {
+    case "pass":
+      return "\u2705";
+    case "warning":
+      return "\u26A0\uFE0F";
+    case "fail":
+      return "\u274C";
+    default:
+      return "\u2753";
+  }
+}
+function displayDetails(details, indent = "") {
+  if (typeof details === "string") {
+    console.log(`${indent}Details: ${details}`);
+    return;
+  }
+  if (Array.isArray(details)) {
+    details.forEach((item) => {
+      console.log(`${indent}- ${item}`);
+    });
+    return;
+  }
+  if (typeof details === "object") {
+    Object.entries(details).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        console.log(`${indent}${key}:`);
+        value.forEach((item) => {
+          console.log(`${indent}  - ${item}`);
+        });
+      } else if (typeof value === "object" && value !== null) {
+        console.log(`${indent}${key}:`);
+        displayDetails(value, indent + "  ");
+      } else {
+        console.log(`${indent}${key}: ${value}`);
+      }
+    });
+  }
+}
+function runBasicChecks(jarvisDir) {
+  const checks = [];
+  const sqlitePath = resolve3(jarvisDir, "db", "memory.db");
+  if (existsSync4(sqlitePath)) {
+    checks.push({
+      name: "SQLite Database",
+      status: "pass",
+      message: "Database file exists"
+    });
+  } else {
+    checks.push({
+      name: "SQLite Database",
+      status: "fail",
+      message: "Database file missing"
+    });
+  }
+  const chromaPath = resolve3(jarvisDir, "db", "chroma");
+  if (existsSync4(chromaPath)) {
+    checks.push({
+      name: "ChromaDB",
+      status: "pass",
+      message: "ChromaDB directory exists"
+    });
+  } else {
+    checks.push({
+      name: "ChromaDB",
+      status: "warn",
+      message: "ChromaDB directory missing"
+    });
+  }
+  const configPath = resolve3(jarvisDir, "config.json");
+  if (existsSync4(configPath)) {
+    checks.push({
+      name: "Configuration",
+      status: "pass",
+      message: "Config file exists"
+    });
+  } else {
+    checks.push({
+      name: "Configuration",
+      status: "warn",
+      message: "Config file missing"
+    });
+  }
+  return checks;
+}
+function displayBasicChecks(checks, verbose) {
+  console.log("Running basic health checks...\n");
+  for (const check of checks) {
+    const icon = check.status === "pass" ? "\u2713" : check.status === "fail" ? "\u2717" : "\u26A0";
+    console.log(`${icon} ${check.name}`);
+    if (verbose || check.status !== "pass") {
+      console.log(`  ${check.message}`);
+    }
+  }
+  const passCount = checks.filter((c) => c.status === "pass").length;
+  const failCount = checks.filter((c) => c.status === "fail").length;
+  const warnCount = checks.filter((c) => c.status === "warn").length;
+  console.log();
+  console.log(
+    `Summary: ${passCount} passed, ${warnCount} warnings, ${failCount} failed`
+  );
+  console.log();
 }
 function parseDoctorArgs(args) {
   const options = {};
@@ -1155,6 +1265,8 @@ function parseDoctorArgs(args) {
       options.verbose = true;
     } else if (arg === "--json") {
       options.json = true;
+    } else if (arg === "--quiet" || arg === "-q") {
+      options.quiet = true;
     }
   }
   return options;

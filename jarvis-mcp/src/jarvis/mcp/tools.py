@@ -695,6 +695,75 @@ class MCPTools:
                 "error": str(e),
             }
 
+    def get_memory_status(self) -> dict[str, Any]:
+        """Get memory system statistics.
+
+        Returns:
+            Dictionary with memory stats including counts, disk usage, last activity.
+        """
+        try:
+            from jarvis.memory.recall import get_memory_status
+
+            stats = get_memory_status(str(self.project_root))
+
+            return {
+                "success": True,
+                "data": stats,
+                "message": self.persona.format_response(
+                    f"Memory status: {stats['total_entries']} total entries, "
+                    f"{stats['disk_usage_mb']} MB storage"
+                ),
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": self.persona.format_error(
+                    "Unable to retrieve memory status", str(e)
+                ),
+            }
+
+    def run_health_checks(self) -> dict[str, Any]:
+        """Run system health diagnostics.
+
+        Returns:
+            Dictionary with health check results and recommendations.
+        """
+        try:
+            from jarvis.utils.doctor import run_health_checks
+
+            results = run_health_checks(str(self.project_root))
+
+            # Format message based on results
+            if results["overall"] == "healthy":
+                message = self.persona.format_response(
+                    f"All systems operational, Sir. {results['passed']} checks passed."
+                )
+            else:
+                issues = results["failed"] + results["warnings"]
+                message = self.persona.format_response(
+                    f"Detected {issues} issue(s), Sir. "
+                    f"{results['passed']} checks passed, "
+                    f"{results['failed']} failed, "
+                    f"{results['warnings']} warnings."
+                )
+
+            return {
+                "success": True,
+                "data": results,
+                "message": message,
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": self.persona.format_error(
+                    "Health check failed", str(e)
+                ),
+            }
+
     def _contains_decision(self, text: str) -> bool:
         """Check if text contains decision keywords.
 

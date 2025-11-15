@@ -4,6 +4,7 @@
 
 import { existsSync, statSync } from 'fs'
 import { resolve } from 'path'
+import { getDefaultClient } from '../api/mcp-client'
 import { getFormatter } from '../utils/output'
 
 interface StatusOptions {
@@ -32,6 +33,24 @@ export async function handleStatusCommand(
       databases: checkDatabases(jarvisDir),
       config: checkConfig(jarvisDir),
       project: checkProject(jarvisDir),
+      memory: null as any,
+    }
+
+    // Get memory stats from MCP server
+    try {
+      const client = getDefaultClient()
+      const memoryStats = await client.callTool('get_memory_status', {
+        project_path: process.cwd(),
+      })
+
+      if (memoryStats.success && memoryStats.data) {
+        stats.memory = memoryStats.data
+      }
+    } catch (error) {
+      // MCP server might not be running, continue with basic stats
+      if (options.verbose) {
+        console.warn('Could not fetch memory stats from MCP server')
+      }
     }
 
     if (options.json) {
@@ -51,15 +70,35 @@ export async function handleStatusCommand(
 
     // Databases
     console.log('💾 Databases:')
-    console.log(`  SQLite: ${stats.databases.sqlite ? '✓' : '✗'} ${stats.databases.sqliteSize || ''}`)
+    console.log(
+      `  SQLite: ${stats.databases.sqlite ? '✓' : '✗'} ${stats.databases.sqliteSize || ''}`,
+    )
     console.log(`  ChromaDB: ${stats.databases.chroma ? '✓' : '✗'}`)
     console.log()
 
-    // Memory stats
-    if (options.verbose && stats.databases.sqlite) {
+    // Memory stats (from MCP server)
+    if (stats.memory) {
       console.log('📝 Memory:')
-      console.log('  Factual entries: (query needed)')
-      console.log('  Semantic entries: (query needed)')
+      console.log(`  Total entries: ${stats.memory.total_entries || 0}`)
+      if (options.verbose) {
+        console.log(`  Decisions: ${stats.memory.decisions || 0}`)
+        console.log(`  Notes: ${stats.memory.notes || 0}`)
+        if (stats.memory.last_activity) {
+          const lastDate = new Date(stats.memory.last_activity).toLocaleString()
+          console.log(`  Last activity: ${lastDate}`)
+        }
+        console.log(`  Disk usage: ${stats.memory.disk_usage_mb || 0} MB`)
+
+        if (stats.memory.collections) {
+          const collections = Object.entries(stats.memory.collections)
+          if (collections.length > 0) {
+            console.log(`  Collections:`)
+            collections.forEach(([name, count]) => {
+              console.log(`    - ${name}: ${count}`)
+            })
+          }
+        }
+      }
       console.log()
     }
 
