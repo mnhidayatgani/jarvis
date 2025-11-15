@@ -60,3 +60,32 @@ export interface ConfigResult {
   value?: unknown;
   all?: Record<string, unknown>;
 }
+
+// Scan Command Types
+export interface ScanOptions {
+  verbose?: boolean;
+  quiet?: boolean;
+  json?: boolean;
+  interactive?: boolean;
+}
+
+export interface CodebaseAnalysis {
+  tech_stack?: string[];
+  dependencies?: Record<string, string[] | Record<string, string>>;
+  file_count?: number;
+  directory_count?: number;
+  inconsistencies?: Array<{
+    type: string;
+    description: string;
+    examples?: string[];
+  }>;
+  questions?: string[];
+  suggestions?: string[];
+}
+
+export interface ScanResult {
+  success: boolean;
+  data?: CodebaseAnalysis;
+  report?: string;
+  error?: string;
+}

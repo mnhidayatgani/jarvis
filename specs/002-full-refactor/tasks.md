@@ -15,13 +15,13 @@
 
 **Purpose**: Initial configuration and tooling setup for both jarvis-cli and jarvis-mcp
 
-- [X] T001 [P] Update jarvis-cli/tsconfig.json to enable strict mode with all strict flags
-- [X] T002 [P] Update jarvis-mcp/pyproject.toml to enable strict mypy configuration
-- [X] T003 [P] Create jarvis-cli/src/core/types/ directory with index.ts, config.ts, memory.ts
-- [X] T004 [P] Create jarvis-mcp/src/jarvis/core/ directory with __init__.py, types.py, errors.py, validators.py
-- [X] T005 [P] Create docs/ directory at repository root with architecture/ and best-practices/ subdirectories
-- [X] T006 [P] Create jarvis-cli/tests/fixtures/ and jarvis-cli/tests/helpers/ directories
-- [X] T007 [P] Create jarvis-mcp/tests/fixtures/ directory with __init__.py, memory_data.py, configs.py
+- [x] T001 [P] Update jarvis-cli/tsconfig.json to enable strict mode with all strict flags
+- [x] T002 [P] Update jarvis-mcp/pyproject.toml to enable strict mypy configuration
+- [x] T003 [P] Create jarvis-cli/src/core/types/ directory with index.ts, config.ts, memory.ts
+- [x] T004 [P] Create jarvis-mcp/src/jarvis/core/ directory with **init**.py, types.py, errors.py, validators.py
+- [x] T005 [P] Create docs/ directory at repository root with architecture/ and best-practices/ subdirectories
+- [x] T006 [P] Create jarvis-cli/tests/fixtures/ and jarvis-cli/tests/helpers/ directories
+- [x] T007 [P] Create jarvis-mcp/tests/fixtures/ directory with **init**.py, memory_data.py, configs.py
 
 ---
 
@@ -33,33 +33,33 @@
 
 ### Error Hierarchies
 
-- [X] T008 [P] Implement JarvisError base class in jarvis-cli/src/core/errors/base.ts with toJSON() and toCLIMessage()
-- [X] T009 [P] Implement Python JarvisError base class in jarvis-mcp/src/jarvis/core/errors.py with to_dict()
-- [X] T010 [P] Implement ValidationError, MCPConnectionError, FileSystemError, ConfigurationError in jarvis-cli/src/core/errors/cli-errors.ts
-- [X] T011 [P] Implement ValidationError, DatabaseError, MCPToolError, FileSystemError in jarvis-mcp/src/jarvis/core/errors.py
-- [X] T012 Export all error classes from jarvis-cli/src/core/errors/index.ts
+- [x] T008 [P] Implement JarvisError base class in jarvis-cli/src/core/errors/base.ts with toJSON() and toCLIMessage()
+- [x] T009 [P] Implement Python JarvisError base class in jarvis-mcp/src/jarvis/core/errors.py with to_dict()
+- [x] T010 [P] Implement ValidationError, MCPConnectionError, FileSystemError, ConfigurationError in jarvis-cli/src/core/errors/cli-errors.ts
+- [x] T011 [P] Implement ValidationError, DatabaseError, MCPToolError, FileSystemError in jarvis-mcp/src/jarvis/core/errors.py
+- [x] T012 Export all error classes from jarvis-cli/src/core/errors/index.ts
 - [ ] T013 Replace all `throw new Error()` in jarvis-cli/src/ with specific error types
 
 ### Interface Definitions
 
-- [X] T014 [P] Create ICommand<TOptions, TResult> interface in jarvis-cli/src/commands/base/command.ts
-- [X] T015 [P] Create BaseCommand abstract class implementing ICommand in jarvis-cli/src/commands/base/command.ts
-- [X] T016 [P] Create IMCPClient interface in jarvis-cli/src/api/types.ts with MCPResponse and MCPToolCall types
+- [x] T014 [P] Create ICommand<TOptions, TResult> interface in jarvis-cli/src/commands/base/command.ts
+- [x] T015 [P] Create BaseCommand abstract class implementing ICommand in jarvis-cli/src/commands/base/command.ts
+- [x] T016 [P] Create IMCPClient interface in jarvis-cli/src/api/types.ts with MCPResponse and MCPToolCall types
 - [ ] T017 [P] Create IOutputFormatter interface in jarvis-cli/src/utils/output.ts
-- [X] T018 [P] Create IMemoryLayer protocol in jarvis-mcp/src/jarvis/memory/interfaces.py
-- [X] T019 [P] Create IStorageBackend and IEmbeddingsProvider protocols in jarvis-mcp/src/jarvis/memory/interfaces.py
-- [X] T020 [P] Create MemoryEntry Pydantic model in jarvis-mcp/src/jarvis/core/types.py
-- [X] T021 [P] Create SearchResult Pydantic model in jarvis-mcp/src/jarvis/core/types.py
-- [X] T022 [P] Create ProjectConfig Pydantic model in jarvis-mcp/src/jarvis/core/validators.py
+- [x] T018 [P] Create IMemoryLayer protocol in jarvis-mcp/src/jarvis/memory/interfaces.py
+- [x] T019 [P] Create IStorageBackend and IEmbeddingsProvider protocols in jarvis-mcp/src/jarvis/memory/interfaces.py
+- [x] T020 [P] Create MemoryEntry Pydantic model in jarvis-mcp/src/jarvis/core/types.py
+- [x] T021 [P] Create SearchResult Pydantic model in jarvis-mcp/src/jarvis/core/types.py
+- [x] T022 [P] Create ProjectConfig Pydantic model in jarvis-mcp/src/jarvis/core/validators.py
 
 ### Test Infrastructure
 
-- [X] T023 [P] Create test fixtures for configs in jarvis-cli/tests/fixtures/configs.ts
-- [X] T024 [P] Create mock MCP responses in jarvis-cli/tests/fixtures/responses.ts
-- [X] T025 [P] Create test helper functions in jarvis-cli/tests/helpers/mocks.ts
-- [X] T026 [P] Create pytest fixtures in jarvis-mcp/tests/conftest.py for temp projects and mock storage
+- [x] T023 [P] Create test fixtures for configs in jarvis-cli/tests/fixtures/configs.ts
+- [x] T024 [P] Create mock MCP responses in jarvis-cli/tests/fixtures/responses.ts
+- [x] T025 [P] Create test helper functions in jarvis-cli/tests/helpers/mocks.ts
+- [x] T026 [P] Create pytest fixtures in jarvis-mcp/tests/conftest.py for temp projects and mock storage
 - [ ] T027 Run TypeScript type checker and fix all type errors in existing code
-- [X] T028 Run mypy on Python code and add type hints to all public APIs
+- [x] T028 Run mypy on Python code and add type hints to all public APIs
 
 **Checkpoint**: Foundation ready - strict typing enabled, errors defined, interfaces created, tests can run ✅
 
@@ -77,10 +77,10 @@
 - [ ] T030 [US1] Refactor InitCommand to extend BaseCommand in jarvis-cli/src/commands/init.ts
 - [ ] T031 [US1] Implement parse(), validate(), execute() methods for InitCommand
 - [ ] T032 [US1] Verify InitCommand tests still pass and add edge case tests
-- [X] T033 [P] [US1] Write characterization tests for StatusCommand in jarvis-cli/tests/unit/commands/status.test.ts
-- [X] T034 [US1] Refactor StatusCommand to extend BaseCommand in jarvis-cli/src/commands/status.ts
-- [X] T035 [P] [US1] Write characterization tests for ConfigCommand in jarvis-cli/tests/unit/commands/config.test.ts
-- [X] T036 [US1] Refactor ConfigCommand to extend BaseCommand in jarvis-cli/src/commands/config.ts
+- [x] T033 [P] [US1] Write characterization tests for StatusCommand in jarvis-cli/tests/unit/commands/status.test.ts
+- [x] T034 [US1] Refactor StatusCommand to extend BaseCommand in jarvis-cli/src/commands/status.ts
+- [x] T035 [P] [US1] Write characterization tests for ConfigCommand in jarvis-cli/tests/unit/commands/config.test.ts
+- [x] T036 [US1] Refactor ConfigCommand to extend BaseCommand in jarvis-cli/src/commands/config.ts
 - [ ] T037 [P] [US1] Write characterization tests for ScanCommand in jarvis-cli/tests/unit/commands/scan.test.ts
 - [ ] T038 [US1] Refactor ScanCommand to extend BaseCommand in jarvis-cli/src/commands/scan.ts
 - [ ] T039 [P] [US1] Write characterization tests for RememberCommand in jarvis-cli/tests/unit/commands/remember.test.ts
