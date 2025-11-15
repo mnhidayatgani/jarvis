@@ -12,7 +12,9 @@ from typing import Any
 
 from jarvis.capture.git_hooks import GitHooks
 from jarvis.capture.scanner import analyze_tech_stack, generate_scan_report
+from jarvis.memory.core import initialize_databases
 from jarvis.memory.factual import FactualMemory
+from jarvis.memory.remember import add_decision
 from jarvis.memory.semantic import SemanticMemory
 from jarvis.utils.config import Configuration
 from jarvis.utils.embeddings import EmbeddingsWrapper
@@ -62,6 +64,21 @@ class MCPTools:
             Response with memory_id, timestamp, and confirmation message.
         """
         try:
+            # For decision type, use the new add_decision function
+            if type == "decision":
+                result = add_decision(str(self.project_root), content)
+
+                return {
+                    "success": True,
+                    "memory_id": result["id"],
+                    "type": type,
+                    "timestamp": result["timestamp"],
+                    "message": self.persona.format_success(
+                        "Understood, Sir. I have recorded that decision."
+                    ),
+                }
+
+            # For other types, use existing implementation
             # Generate memory ID
             memory_id = self._generate_memory_id(content)
 
@@ -95,9 +112,7 @@ class MCPTools:
                     "total_chunks": str(len(chunks)),
                 }
                 if metadata:
-                    chunk_metadata.update(
-                        {k: str(v) for k, v in metadata.items()}
-                    )
+                    chunk_metadata.update({k: str(v) for k, v in metadata.items()})
 
                 self.semantic.add_semantic_entry(
                     entry_id=chunk_id, content=chunk, metadata=chunk_metadata
@@ -273,6 +288,9 @@ class MCPTools:
             Analysis report with tech stack, dependencies, structure, inconsistencies.
         """
         try:
+            # Initialize databases if not already initialized
+            initialize_databases(str(self.project_root))
+
             # Use scanner for comprehensive analysis
             analysis = analyze_tech_stack(self.project_root)
 
