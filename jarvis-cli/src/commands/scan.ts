@@ -4,7 +4,7 @@
  */
 
 import { BaseCommand } from "./base/command";
-import type { ScanOptions, ScanResult } from "./base/types";
+import type { ScanOptions, ScanResult, CodebaseAnalysis } from "./base/types";
 import { getDefaultClient } from "../api/mcp-client";
 import { MCPConnectionError, InternalError } from "../core/errors";
 
@@ -46,17 +46,22 @@ export class ScanCommand extends BaseCommand<ScanOptions, ScanResult> {
       if (!response.success) {
         const errorMsg = typeof response.error === 'string'
           ? response.error
-          : (response.error as any)?.message || "Analysis failed";
+          : (typeof response.error === 'object' && response.error !== null && 'message' in response.error)
+            ? String((response.error as { message: unknown }).message)
+            : "Analysis failed";
         throw new MCPConnectionError(
           errorMsg,
           "mcp://analyze_codebase"
         );
       }
 
+      const data = response.data as CodebaseAnalysis | undefined;
       return {
         success: true,
-        data: response.data as any,
-        report: (response.data as any)?.report,
+        data: data,
+        report: typeof response.data === 'object' && response.data !== null && 'report' in response.data 
+          ? String(response.data.report) 
+          : undefined,
       };
     } catch (error) {
       if (error instanceof MCPConnectionError) {

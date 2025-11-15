@@ -26,25 +26,31 @@ export async function handleRollback(
       checkpoint_id: checkpointId,
       keep_checkpoint: options.keep || false,
     })
+    const data = result.data as { checkpoint_id: string; files_restored?: string[] } | undefined
 
     if (options.json) {
       console.log(JSON.stringify(result.data, null, 2))
       return
     }
 
-    console.log(`\n✅ ${result.message}`)
-    console.log(`   Checkpoint: ${result.data.checkpoint_id}`)
+    if (!data) {
+      console.log('\n❌ Invalid rollback response\n')
+      return
+    }
 
-    if (result.data.files_restored && result.data.files_restored.length > 0) {
-      console.log(`   Files restored: ${result.data.files_restored.length}`)
+    console.log(`\n✅ ${result.message}`)
+    console.log(`   Checkpoint: ${data.checkpoint_id}`)
+
+    if (data.files_restored && data.files_restored.length > 0) {
+      console.log(`   Files restored: ${data.files_restored.length}`)
       console.log('\n   Restored files:')
-      const filesToShow = result.data.files_restored.slice(0, 10)
+      const filesToShow = data.files_restored.slice(0, 10)
       for (const file of filesToShow) {
         console.log(`     - ${file}`)
       }
-      if (result.data.files_restored.length > 10) {
+      if (data.files_restored.length > 10) {
         console.log(
-          `     ... and ${result.data.files_restored.length - 10} more`,
+          `     ... and ${data.files_restored.length - 10} more`,
         )
       }
     } else {
@@ -58,28 +64,30 @@ export async function handleRollback(
     }
 
     console.log()
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (options.json) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.log(
         JSON.stringify({
           success: false,
-          error: error.message,
+          error: errorMessage,
         }),
       )
       process.exit(1)
     }
     // Re-throw as MCPConnectionError or InternalError based on error type
-    if (error.message?.includes('MCP') || error.message?.includes('connection')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('MCP') || errorMessage.includes('connection')) {
       throw new MCPConnectionError(
         'Failed to rollback checkpoint. Your working directory has been preserved.',
         'unknown',
-        error
+        error instanceof Error ? error : undefined
       )
     }
     throw new InternalError(
-      `Rollback failed: ${error.message}. Your working directory has been preserved.`,
+      `Rollback failed: ${errorMessage}. Your working directory has been preserved.`,
       undefined,
-      error
+      error instanceof Error ? error : undefined
     )
   }
 }

@@ -8,6 +8,7 @@ This module provides functionality to scan a project directory and identify:
 
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 # Directories to ignore during scanning
 IGNORE_DIRS = {
@@ -45,7 +46,7 @@ TECH_INDICATORS = {
 }
 
 
-def analyze_tech_stack(project_root: Path) -> dict:
+def analyze_tech_stack(project_root: Path) -> dict[str, Any]:
     """Analyze project directory and identify tech stack.
 
     Args:
@@ -174,7 +175,7 @@ def _infer_from_extensions(file_types: dict[str, int], tech_stack: set[str]) -> 
             tech_stack.add(tech)
 
 
-def generate_scan_report(analysis: dict) -> str:
+def generate_scan_report(analysis: dict[str, Any]) -> str:
     """Generate human-readable scan report.
 
     Args:

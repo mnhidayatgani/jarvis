@@ -55,7 +55,7 @@ def detect_project_type(project_root: str) -> dict[str, Any]:
         }
     """
     root = Path(project_root)
-    detected = {
+    detected: dict[str, Any] = {
         "python": False,
         "typescript": False,
         "tools": {},

@@ -1,11 +1,26 @@
 /**
  * Type definitions for CLI commands
+ * 
+ * All command option types should extend BaseCommandOptions for consistency.
  */
 
-// Status Command Types
-export interface StatusOptions {
-  verbose?: boolean;
+/**
+ * Base command options shared across all commands
+ */
+export interface BaseCommandOptions {
+  /** Output in JSON format instead of human-readable */
   json?: boolean;
+
+  /** Verbose output with additional details */
+  verbose?: boolean;
+
+  /** Suppress non-essential output */
+  quiet?: boolean;
+}
+
+// Status Command Types
+export interface StatusOptions extends BaseCommandOptions {
+  // No additional options beyond base
 }
 
 export interface DatabaseStatus {
@@ -47,10 +62,17 @@ export interface StatusResult {
 }
 
 // Config Command Types
-export interface ConfigOptions {
+export interface ConfigOptions extends BaseCommandOptions {
+  /** Config key (for get/set actions) */
   key?: string;
+
+  /** Config value (for set action) */
   value?: string;
+
+  /** List all configuration values */
   list?: boolean;
+
+  /** Unset/reset configuration */
   unset?: boolean;
 }
 
@@ -62,10 +84,8 @@ export interface ConfigResult {
 }
 
 // Scan Command Types
-export interface ScanOptions {
-  verbose?: boolean;
-  quiet?: boolean;
-  json?: boolean;
+export interface ScanOptions extends BaseCommandOptions {
+  /** Interactive mode for guided analysis */
   interactive?: boolean;
 }
 
@@ -91,14 +111,18 @@ export interface ScanResult {
 }
 
 // Remember Command Types
-export interface RememberOptions {
+export interface RememberOptions extends BaseCommandOptions {
+  /** Content to remember (1-10,000 characters) */
   content?: string;
-  type?: string;
+
+  /** Memory type: decision, note, or context */
+  type?: "decision" | "note" | "context";
+
+  /** Tags for categorization (max 10) */
   tags?: string[];
+
+  /** Associated file path */
   file?: string;
-  verbose?: boolean;
-  quiet?: boolean;
-  json?: boolean;
 }
 
 export interface RememberResult {
@@ -110,16 +134,24 @@ export interface RememberResult {
 }
 
 // Recall Command Types
-export interface RecallOptions {
+export interface RecallOptions extends BaseCommandOptions {
+  /** Search query */
   query?: string;
-  type?: string;
+
+  /** Filter by memory type */
+  type?: "decision" | "note" | "context";
+
+  /** Filter by file path */
   file?: string;
+
+  /** Only show memories after this date (ISO 8601) */
   since?: string;
+
+  /** Maximum results to return (1-100) */
   limit?: number;
-  verbose?: boolean;
-  quiet?: boolean;
-  json?: boolean;
-  id?: string; // For drill-down by specific memory ID
+
+  /** For drill-down by specific memory ID */
+  id?: string;
 }
 
 export interface MemoryItem {
@@ -143,10 +175,9 @@ export interface RecallResult {
 }
 
 // Init Command Types
-export interface InitOptions {
+export interface InitOptions extends BaseCommandOptions {
+  /** Force re-initialization even if already initialized */
   force?: boolean;
-  verbose?: boolean;
-  quiet?: boolean;
 }
 
 export interface InitResult {
@@ -159,10 +190,8 @@ export interface InitResult {
 }
 
 // Doctor Command Types
-export interface DoctorOptions {
-  verbose?: boolean;
-  json?: boolean;
-  quiet?: boolean;
+export interface DoctorOptions extends BaseCommandOptions {
+  // No additional options beyond base
 }
 
 export interface HealthCheckItem {
@@ -179,4 +208,107 @@ export interface DoctorResult {
   failed: number;
   warnings: number;
   checks: HealthCheckItem[];
+}
+
+// Checkpoint Command Types
+export interface CheckpointOptions extends BaseCommandOptions {
+  /** Reason for creating checkpoint */
+  reason?: string;
+
+  /** List existing checkpoints instead */
+  list?: boolean;
+
+  /** Preview specific checkpoint by ID */
+  preview?: string;
+
+  /** Run validation after creating checkpoint */
+  validate?: boolean;
+}
+
+export interface CheckpointInfo {
+  id: string;
+  reason: string;
+  timestamp: string;
+  filesAffected: string[];
+}
+
+export interface CheckpointResult {
+  success: boolean;
+  checkpoint?: CheckpointInfo;
+  checkpoints?: CheckpointInfo[];
+  error?: string;
+}
+
+// Rollback Command Types
+export interface RollbackOptions extends BaseCommandOptions {
+  /** Specific checkpoint ID to restore (defaults to latest) */
+  checkpointId?: string;
+
+  /** Keep checkpoint after restoring */
+  keep?: boolean;
+}
+
+export interface RollbackResult {
+  success: boolean;
+  checkpointId: string;
+  filesRestored: string[];
+  checkpointKept: boolean;
+  error?: string;
+}
+
+// Validate Command Types
+export interface ValidateOptions extends BaseCommandOptions {
+  // No additional options beyond base
+}
+
+export interface ValidationCheck {
+  tool: string;
+  status: "pass" | "fail";
+  duration: number;
+  output?: string;
+  error?: string;
+}
+
+export interface ValidateResult {
+  success: boolean;
+  overall_passed: boolean;
+  checks: ValidationCheck[];
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    duration: number;
+  };
+  error?: string;
+}
+
+// Cleanup Command Types
+export interface CleanupOptions extends BaseCommandOptions {
+  /** What to clean: memory, checkpoints, or all */
+  target?: "memory" | "checkpoints" | "all";
+
+  /** Show what would be cleaned without actually doing it */
+  dryRun?: boolean;
+
+  /** Age threshold in days */
+  olderThan?: number;
+
+  /** Actually perform cleanup (safety flag) */
+  force?: boolean;
+}
+
+export interface CleanupItem {
+  type: string;
+  id: string;
+  age: number;
+  size?: number;
+}
+
+export interface CleanupResult {
+  success: boolean;
+  items: CleanupItem[];
+  dryRun: boolean;
+  totalCleaned: number;
+  spaceFreed: number;
+  error?: string;
 }

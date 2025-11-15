@@ -26,7 +26,7 @@ class MemoryEntry(BaseModel):
     @classmethod
     def normalize_tags(cls, v: list[str]) -> list[str]:
         """Normalize tags to lowercase and remove duplicates."""
-        return list(set(tag.lower().strip() for tag in v if tag.strip()))
+        return list({tag.lower().strip() for tag in v if tag.strip()})
 
     @field_validator("tags")
     @classmethod

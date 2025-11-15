@@ -84,16 +84,19 @@ JARVIS is a dual-component AI memory assistant:
 ### 1. Separation of Concerns
 
 **CLI Layer** (Presentation):
+
 - User interaction and output formatting
 - Argument parsing and validation
 - Error presentation with JARVIS persona
 
 **MCP Server** (Business Logic):
+
 - Memory operations and storage
 - Semantic search and embeddings
 - Project analysis and scanning
 
 **Benefits**:
+
 - CLI can be replaced without changing memory logic
 - MCP server can be used by other clients
 - Clear boundaries for testing
@@ -101,18 +104,17 @@ JARVIS is a dual-component AI memory assistant:
 ### 2. Dependency Injection
 
 **CLI Commands**:
+
 ```typescript
 class RememberCommand extends BaseCommand {
-  constructor(
-    private client: IMCPClient,
-    private formatter: IOutputFormatter
-  ) {
+  constructor(private client: IMCPClient, private formatter: IOutputFormatter) {
     super();
   }
 }
 ```
 
 **Benefits**:
+
 - Easy to mock for testing
 - Flexible configuration
 - Clear dependencies
@@ -120,16 +122,19 @@ class RememberCommand extends BaseCommand {
 ### 3. Interface-Driven Design
 
 **TypeScript**:
+
 - `ICommand<TOptions, TResult>`
 - `IMCPClient`
 - `IOutputFormatter`
 
 **Python**:
+
 - `IMemoryLayer` (Protocol)
 - `IStorageBackend` (Protocol)
 - `IEmbeddingsProvider` (Protocol)
 
 **Benefits**:
+
 - Contract-based programming
 - Easy to swap implementations
 - Type-safe across layers
@@ -137,6 +142,7 @@ class RememberCommand extends BaseCommand {
 ### 4. Fail Fast
 
 **Validation Before Execution**:
+
 ```typescript
 async run(args: string[]): Promise<TResult> {
   const options = this.parse(args);    // Convert strings
@@ -146,6 +152,7 @@ async run(args: string[]): Promise<TResult> {
 ```
 
 **Benefits**:
+
 - Early error detection
 - Clear error messages
 - No partial state changes
@@ -153,6 +160,7 @@ async run(args: string[]): Promise<TResult> {
 ### 5. Backward Compatibility
 
 **Constitution 1.1 Compliance**:
+
 - 100% compatible with existing `.jarvis` data structures
 - No breaking changes to user-facing APIs
 - Preserves JARVIS persona standards
@@ -223,11 +231,13 @@ jarvis-mcp/
 **Implementation**: See [ADR-001: Command Pattern](./adr-001-command-pattern.md)
 
 **Key Classes**:
+
 - `ICommand<TOptions, TResult>` - Interface
 - `BaseCommand` - Abstract base with template method
 - `InitCommand`, `RememberCommand`, etc. - Concrete commands
 
 **Benefits**:
+
 - Consistent structure across commands
 - Easy to test parse/validate/execute separately
 - Clear lifecycle: args → options → result
@@ -239,10 +249,12 @@ jarvis-mcp/
 **Implementation**: See [ADR-002: Memory Interfaces](./adr-002-memory-interfaces.md)
 
 **Key Classes**:
+
 - `BaseMemory` - Abstract base with template methods
 - `FactualMemory`, `SemanticMemory`, `SnapshotMemory` - Concrete implementations
 
 **Benefits**:
+
 - Shared validation and initialization
 - Consistent interface across storage backends
 - 85% code reuse for common operations
@@ -252,6 +264,7 @@ jarvis-mcp/
 **Purpose**: Decouple components, improve testability
 
 **CLI Example**:
+
 ```typescript
 const client = new MCPClient();
 const formatter = new OutputFormatter(options);
@@ -259,6 +272,7 @@ const command = new RememberCommand(client, formatter);
 ```
 
 **Benefits**:
+
 - Easy to mock for testing
 - Runtime configuration
 - Clear component boundaries
@@ -268,12 +282,15 @@ const command = new RememberCommand(client, formatter);
 **Purpose**: Centralize object creation
 
 **Usage**:
+
 ```typescript
 class CommandFactory {
   create(name: string): ICommand {
-    switch(name) {
-      case 'remember': return new RememberCommand(this.client, this.formatter);
-      case 'recall': return new RecallCommand(this.client, this.formatter);
+    switch (name) {
+      case "remember":
+        return new RememberCommand(this.client, this.formatter);
+      case "recall":
+        return new RecallCommand(this.client, this.formatter);
       // ...
     }
   }
@@ -281,6 +298,7 @@ class CommandFactory {
 ```
 
 **Benefits**:
+
 - Single place to wire up dependencies
 - Easy to add new commands
 - Consistent initialization
@@ -291,6 +309,7 @@ class CommandFactory {
 **Python**: Protocols for structural typing, ABC for implementation
 
 **Benefits**:
+
 - Contract-based programming
 - Duck typing with type safety
 - Flexible implementations
@@ -348,35 +367,35 @@ User: jarvis recall "database choice"
 
 ### CLI (TypeScript)
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Runtime | Node.js 18+ | JavaScript execution |
-| Language | TypeScript 5.2+ | Type-safe development |
-| Bundler | esbuild | Fast bundling |
-| Testing | Vitest | Unit/integration tests |
-| Linting | ESLint + Prettier | Code quality |
-| Type Checking | tsc --noEmit | Strict type validation |
+| Component     | Technology        | Purpose                |
+| ------------- | ----------------- | ---------------------- |
+| Runtime       | Node.js 18+       | JavaScript execution   |
+| Language      | TypeScript 5.2+   | Type-safe development  |
+| Bundler       | esbuild           | Fast bundling          |
+| Testing       | Vitest            | Unit/integration tests |
+| Linting       | ESLint + Prettier | Code quality           |
+| Type Checking | tsc --noEmit      | Strict type validation |
 
 ### MCP Server (Python)
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Runtime | Python 3.10+ | Async execution |
-| Package Manager | uv | Fast dependency management |
-| DB (Factual) | SQLite | Structured storage |
-| DB (Semantic) | ChromaDB | Vector storage |
-| Embeddings | sentence-transformers | Text→vector conversion |
-| Testing | pytest + pytest-asyncio | Unit/integration/e2e tests |
-| Linting | ruff + black | Code quality + formatting |
-| Type Checking | mypy | Static type validation |
+| Component       | Technology              | Purpose                    |
+| --------------- | ----------------------- | -------------------------- |
+| Runtime         | Python 3.10+            | Async execution            |
+| Package Manager | uv                      | Fast dependency management |
+| DB (Factual)    | SQLite                  | Structured storage         |
+| DB (Semantic)   | ChromaDB                | Vector storage             |
+| Embeddings      | sentence-transformers   | Text→vector conversion     |
+| Testing         | pytest + pytest-asyncio | Unit/integration/e2e tests |
+| Linting         | ruff + black            | Code quality + formatting  |
+| Type Checking   | mypy                    | Static type validation     |
 
 ### Storage
 
-| Layer | Technology | Data Type | Use Case |
-|-------|-----------|-----------|----------|
-| L1 Factual | SQLite | Structured | Exact matches, metadata queries |
-| L2 Semantic | ChromaDB | Vectors | Natural language search |
-| L3 Snapshot | JSON files | Diffs | Code history, rollback |
+| Layer       | Technology | Data Type  | Use Case                        |
+| ----------- | ---------- | ---------- | ------------------------------- |
+| L1 Factual  | SQLite     | Structured | Exact matches, metadata queries |
+| L2 Semantic | ChromaDB   | Vectors    | Natural language search         |
+| L3 Snapshot | JSON files | Diffs      | Code history, rollback          |
 
 ---
 
@@ -501,16 +520,19 @@ jarvis-mcp/src/jarvis/
 ## Next Steps
 
 **Phase 3 Complete** ✅:
+
 - Command Pattern implementation
 - Memory layer refactoring
 - Architecture documentation
 
 **Phase 4** (In Progress):
+
 - Enhanced type safety
 - Remove all `any` types
 - 100% type coverage
 
 **Phase 5-9** (Planned):
+
 - Performance optimization
 - Enhanced testing
 - API documentation generation

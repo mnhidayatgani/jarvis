@@ -7,9 +7,10 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 
-def run_health_checks(project_path: str) -> dict:
+def run_health_checks(project_path: str) -> dict[str, Any]:
     """Run comprehensive system health checks.
 
     Args:
@@ -47,7 +48,7 @@ def run_health_checks(project_path: str) -> dict:
     }
 
 
-def check_python_version() -> dict:
+def check_python_version() -> dict[str, Any]:
     """Check if Python version meets requirements.
 
     Returns:
@@ -71,7 +72,7 @@ def check_python_version() -> dict:
         }
 
 
-def check_dependencies() -> dict:
+def check_dependencies() -> dict[str, Any]:
     """Check if required Python packages are installed.
 
     Returns:
@@ -107,7 +108,7 @@ def check_dependencies() -> dict:
         }
 
 
-def check_databases(project_path: str) -> dict:
+def check_databases(project_path: str) -> dict[str, Any]:
     """Check database health and accessibility.
 
     Args:
@@ -136,11 +137,11 @@ def check_databases(project_path: str) -> dict:
     if sqlite_db.exists():
         try:
             # Try to open and query
-            from sqlalchemy import create_engine
+            from sqlalchemy import create_engine, text
 
             engine = create_engine(f"sqlite:///{sqlite_db}")
             with engine.connect() as conn:
-                conn.execute("SELECT 1")  # type: ignore[arg-type]
+                conn.execute(text("SELECT 1"))
             databases["sqlite"] = "accessible"
         except Exception as e:
             databases["sqlite"] = f"error: {str(e)}"
@@ -155,7 +156,7 @@ def check_databases(project_path: str) -> dict:
             import chromadb
 
             client = chromadb.PersistentClient(path=str(chroma_db))
-            client.heartbeat()  # type: ignore[attr-defined]
+            client.heartbeat()
             databases["chromadb"] = "accessible"
         except Exception as e:
             databases["chromadb"] = f"error: {str(e)}"
@@ -178,7 +179,7 @@ def check_databases(project_path: str) -> dict:
         }
 
 
-def check_disk_space(project_path: str) -> dict:
+def check_disk_space(project_path: str) -> dict[str, Any]:
     """Check available disk space.
 
     Args:
@@ -218,7 +219,7 @@ def check_disk_space(project_path: str) -> dict:
         }
 
 
-def check_permissions(project_path: str) -> dict:
+def check_permissions(project_path: str) -> dict[str, Any]:
     """Check if .jarvis directory has proper permissions.
 
     Args:
@@ -262,7 +263,7 @@ def check_permissions(project_path: str) -> dict:
         }
 
 
-def check_git_repository(project_path: str) -> dict:
+def check_git_repository(project_path: str) -> dict[str, Any]:
     """Check if project is a git repository.
 
     Args:

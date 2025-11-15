@@ -21,7 +21,10 @@ export class RecallCommand extends BaseCommand<RecallOptions, RecallResult> {
       const arg = args[i];
 
       if (arg === "--type" || arg === "-t") {
-        options.type = args[++i];
+        const typeValue = args[++i];
+        if (typeValue === "decision" || typeValue === "note" || typeValue === "context") {
+          options.type = typeValue;
+        }
       } else if (arg === "--file" || arg === "-f") {
         options.file = args[++i];
       } else if (arg === "--since" || arg === "-s") {
@@ -103,18 +106,20 @@ export class RecallCommand extends BaseCommand<RecallOptions, RecallResult> {
       if (!response.success) {
         const errorMsg = typeof response.error === 'string' 
           ? response.error 
-          : (response.error as any)?.message || "Failed to search memory";
+          : (typeof response.error === 'object' && response.error !== null && 'message' in response.error)
+            ? String((response.error as { message: unknown }).message)
+            : "Failed to search memory";
         throw new MCPConnectionError(
           errorMsg,
           "mcp://recall_context"
         );
       }
 
-      const data = response.data as any;
+      const data = response.data as { results?: MemoryItem[]; total?: number } | undefined;
       return {
         success: true,
-        results: data.results || [],
-        total: data.total || data.results?.length || 0,
+        results: data?.results || [],
+        total: data?.total || data?.results?.length || 0,
         query: options.query,
       };
     } catch (error) {
@@ -140,7 +145,9 @@ export class RecallCommand extends BaseCommand<RecallOptions, RecallResult> {
       if (!response.success) {
         const errorMsg = typeof response.error === 'string'
           ? response.error
-          : (response.error as any)?.message || `Memory ${id} not found`;
+          : (typeof response.error === 'object' && response.error !== null && 'message' in response.error)
+            ? String((response.error as { message: unknown }).message)
+            : `Memory ${id} not found`;
         throw new MCPConnectionError(
           errorMsg,
           "mcp://get_memory_by_id"

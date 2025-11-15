@@ -112,8 +112,8 @@ export class FileNotFoundError extends FileSystemError {
  * Raised when lacking permissions
  */
 export class PermissionDeniedError extends FileSystemError {
-  constructor(path: string, operation: string) {
-    super(`Permission denied`, path, operation as any);
+  constructor(path: string, operation: "read" | "write" | "delete" | "create") {
+    super(`Permission denied`, path, operation);
     this.code = "PERMISSION_DENIED";
   }
 }

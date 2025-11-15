@@ -46,7 +46,7 @@ export class DoctorCommand extends BaseCommand<DoctorOptions, DoctorResult> {
       });
 
       if (response.success && response.data) {
-        return this.parseServerHealthData(response.data as any);
+        return this.parseServerHealthData(response.data);
       }
     } catch (error) {
       // Fall through to basic checks
@@ -59,27 +59,36 @@ export class DoctorCommand extends BaseCommand<DoctorOptions, DoctorResult> {
     return this.runBasicChecks(jarvisDir);
   }
 
-  private parseServerHealthData(data: any): DoctorResult {
+  private parseServerHealthData(data: unknown): DoctorResult {
     const checks: HealthCheckItem[] = [];
 
     // Convert server response to our format
-    if (data.checks) {
-      for (const [name, check] of Object.entries(data.checks)) {
-        checks.push({
-          name: this.formatCheckName(name),
-          status: (check as any).status || "warn",
-          message: (check as any).message || "",
-          details: (check as any).details,
-        });
+    if (typeof data === 'object' && data !== null && 'checks' in data) {
+      const checksData = (data as { checks?: Record<string, unknown> }).checks;
+      if (checksData) {
+        for (const [name, check] of Object.entries(checksData)) {
+          const checkObj = typeof check === 'object' && check !== null ? check : {};
+          checks.push({
+            name: this.formatCheckName(name),
+            status: ('status' in checkObj && typeof checkObj.status === 'string' && (checkObj.status === 'pass' || checkObj.status === 'fail' || checkObj.status === 'warn'))
+              ? checkObj.status
+              : "warn",
+            message: ('message' in checkObj && typeof checkObj.message === 'string') ? checkObj.message : "",
+            details: 'details' in checkObj ? checkObj.details : undefined,
+          });
+        }
       }
     }
 
+    const dataObj = typeof data === 'object' && data !== null ? data as Record<string, unknown> : {};
     return {
       success: true,
-      overall: data.overall || "healthy",
-      passed: data.passed || 0,
-      failed: data.failed || 0,
-      warnings: data.warnings || 0,
+      overall: (typeof dataObj.overall === 'string' && (dataObj.overall === 'healthy' || dataObj.overall === 'degraded' || dataObj.overall === 'critical'))
+        ? dataObj.overall
+        : "healthy",
+      passed: typeof dataObj.passed === 'number' ? dataObj.passed : 0,
+      failed: typeof dataObj.failed === 'number' ? dataObj.failed : 0,
+      warnings: typeof dataObj.warnings === 'number' ? dataObj.warnings : 0,
       checks,
     };
   }

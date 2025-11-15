@@ -5,6 +5,7 @@ Handles adding decisions, context, and commit events to the memory system.
 
 import json
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import insert
 
@@ -15,7 +16,7 @@ from jarvis.memory.core import (
 )
 
 
-def add_decision(project_path: str, content: str) -> dict:
+def add_decision(project_path: str, content: str) -> dict[str, Any]:
     """Add a decision to semantic memory.
 
     Stores decision in both SQLite (metadata) and ChromaDB (embeddings).
@@ -62,7 +63,7 @@ def add_commit_event(
     date: str,
     files_changed: list[str],
     diff_path: str,
-) -> dict:
+) -> dict[str, Any]:
     """Add a git commit event to memory.
 
     Stores commit metadata in both SQLite and ChromaDB for semantic search.

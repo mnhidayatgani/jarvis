@@ -32,11 +32,11 @@ class FactualMemory(BaseMemory):
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Connect and initialize schema
-        conn = self._get_connection()
+        conn: sqlite3.Connection = self._get_connection()
         try:
-            schema_path = Path(__file__).parent / "schema.sql"
+            schema_path: Path = Path(__file__).parent / "schema.sql"
             with open(schema_path, encoding="utf-8") as f:
-                schema_sql = f.read()
+                schema_sql: str = f.read()
             conn.executescript(schema_sql)
             conn.commit()
         finally:
@@ -80,14 +80,14 @@ class FactualMemory(BaseMemory):
         Returns:
             Created memory entry ID.
         """
-        entry_id = str(uuid.uuid4())
-        timestamp = time.time()
+        entry_id: str = str(uuid.uuid4())
+        timestamp: float = time.time()
 
         # Serialize JSON fields
-        metadata_json = json.dumps(metadata) if metadata else None
-        tags_json = json.dumps(tags) if tags else None
+        metadata_json: str | None = json.dumps(metadata) if metadata else None
+        tags_json: str | None = json.dumps(tags) if tags else None
 
-        conn = self._get_connection()
+        conn: sqlite3.Connection = self._get_connection()
         try:
             conn.execute(
                 """
@@ -125,15 +125,15 @@ class FactualMemory(BaseMemory):
         Returns:
             Memory entry as dictionary, or None if not found.
         """
-        conn = self._get_connection()
+        conn: sqlite3.Connection = self._get_connection()
         try:
-            cursor = conn.execute(
+            cursor: sqlite3.Cursor = conn.execute(
                 """
                 SELECT * FROM memory_entries WHERE id = ?
                 """,
                 (entry_id,),
             )
-            row = cursor.fetchone()
+            row: sqlite3.Row | None = cursor.fetchone()
 
             if row:
                 return self._row_to_dict(row)
@@ -168,7 +168,7 @@ class FactualMemory(BaseMemory):
             List of memory entries as dictionaries.
         """
         # Build query
-        query = "SELECT * FROM memory_entries WHERE 1=1"
+        query: str = "SELECT * FROM memory_entries WHERE 1=1"
         params: list[Any] = []
 
         if project_id:
@@ -201,10 +201,10 @@ class FactualMemory(BaseMemory):
         query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
 
-        conn = self._get_connection()
+        conn: sqlite3.Connection = self._get_connection()
         try:
-            cursor = conn.execute(query, params)
-            rows = cursor.fetchall()
+            cursor: sqlite3.Cursor = conn.execute(query, params)
+            rows: list[sqlite3.Row] = cursor.fetchall()
             return [self._row_to_dict(row) for row in rows]
         finally:
             conn.close()
@@ -222,7 +222,7 @@ class FactualMemory(BaseMemory):
             True if entry was updated, False if not found.
         """
         # Build update query
-        allowed_fields = {
+        allowed_fields: set[str] = {
             "content",
             "content_type",
             "file_path",
@@ -234,7 +234,7 @@ class FactualMemory(BaseMemory):
         }
 
         # Filter to allowed fields
-        updates_filtered = {k: v for k, v in updates.items() if k in allowed_fields}
+        updates_filtered: dict[str, Any] = {k: v for k, v in updates.items() if k in allowed_fields}
 
         if not updates_filtered:
             return False
@@ -246,13 +246,13 @@ class FactualMemory(BaseMemory):
             updates_filtered["tags"] = json.dumps(updates_filtered["tags"])
 
         # Build SET clause
-        set_clause = ", ".join(f"{k} = ?" for k in updates_filtered.keys())
-        params = list(updates_filtered.values())
+        set_clause: str = ", ".join(f"{k} = ?" for k in updates_filtered.keys())
+        params: list[Any] = list(updates_filtered.values())
         params.append(entry_id)
 
-        conn = self._get_connection()
+        conn: sqlite3.Connection = self._get_connection()
         try:
-            cursor = conn.execute(
+            cursor: sqlite3.Cursor = conn.execute(
                 f"UPDATE memory_entries SET {set_clause} WHERE id = ?", params
             )
             conn.commit()
@@ -269,9 +269,9 @@ class FactualMemory(BaseMemory):
         Returns:
             True if entry was deleted, False if not found.
         """
-        conn = self._get_connection()
+        conn: sqlite3.Connection = self._get_connection()
         try:
-            cursor = conn.execute(
+            cursor: sqlite3.Cursor = conn.execute(
                 "DELETE FROM memory_entries WHERE id = ?", (entry_id,)
             )
             conn.commit()
@@ -288,7 +288,7 @@ class FactualMemory(BaseMemory):
         Returns:
             Dictionary representation.
         """
-        result = dict(row)
+        result: dict[str, Any] = dict(row)
 
         # Deserialize JSON fields
         if result.get("metadata"):
@@ -314,14 +314,15 @@ class FactualMemory(BaseMemory):
         Returns:
             Statistics dictionary.
         """
-        conn = self._get_connection()
+        conn: sqlite3.Connection = self._get_connection()
         try:
             # Total entries
-            cursor = conn.execute(
+            cursor: sqlite3.Cursor = conn.execute(
                 "SELECT COUNT(*) as total FROM memory_entries WHERE project_id = ?",
                 (project_id,),
             )
-            total = cursor.fetchone()["total"]
+            row: sqlite3.Row | None = cursor.fetchone()
+            total: int = row["total"] if row else 0
 
             # Entries by type
             cursor = conn.execute(
@@ -333,10 +334,11 @@ class FactualMemory(BaseMemory):
                 """,
                 (project_id,),
             )
-            by_type = {row["content_type"]: row["count"] for row in cursor.fetchall()}
+            rows: list[sqlite3.Row] = cursor.fetchall()
+            by_type: dict[str, int] = {row["content_type"]: row["count"] for row in rows}
 
             # Recent entries (last 7 days)
-            week_ago = time.time() - (7 * 24 * 60 * 60)
+            week_ago: float = time.time() - (7 * 24 * 60 * 60)
             cursor = conn.execute(
                 """
                 SELECT COUNT(*) as recent
@@ -345,7 +347,8 @@ class FactualMemory(BaseMemory):
                 """,
                 (project_id, week_ago),
             )
-            recent = cursor.fetchone()["recent"]
+            recent_row: sqlite3.Row | None = cursor.fetchone()
+            recent: int = recent_row["recent"] if recent_row else 0
 
             return {
                 "total_entries": total,
@@ -356,7 +359,7 @@ class FactualMemory(BaseMemory):
             conn.close()
 
     # BaseMemory abstract method implementations
-    
+
     def _store_entry(
         self,
         entry_id: str,
@@ -364,28 +367,32 @@ class FactualMemory(BaseMemory):
         metadata: dict[str, Any],
     ) -> None:
         """Store entry in SQLite database.
-        
+
         Args:
             entry_id: Unique identifier for the entry.
             content: Content to store.
             metadata: Associated metadata.
         """
-        timestamp = time.time()
-        
+        timestamp: float = time.time()
+
         # Extract fields from metadata
-        project_id = metadata.get("project_id", "default")
-        content_type = metadata.get("type", "note")
-        file_path = metadata.get("file_path")
-        tags = metadata.get("tags", [])
-        
+        project_id: str = str(metadata.get("project_id", "default"))
+        content_type: str = str(metadata.get("type", "note"))
+        file_path: str | None = metadata.get("file_path")
+        if file_path is not None:
+            file_path = str(file_path)
+        tags_raw: Any = metadata.get("tags", [])
+        tags: list[str] = tags_raw if isinstance(tags_raw, list) else []
+
         # Serialize JSON fields
-        metadata_json = json.dumps({
+        remaining_metadata: dict[str, Any] = {
             k: v for k, v in metadata.items()
             if k not in {"project_id", "type", "file_path", "tags", "created_at", "updated_at"}
-        })
-        tags_json = json.dumps(tags) if tags else None
+        }
+        metadata_json: str | None = json.dumps(remaining_metadata) if remaining_metadata else None
+        tags_json: str | None = json.dumps(tags) if tags else None
 
-        conn = self._get_connection()
+        conn: sqlite3.Connection = self._get_connection()
         try:
             conn.execute(
                 """
@@ -414,10 +421,10 @@ class FactualMemory(BaseMemory):
 
     def _retrieve_entry(self, entry_id: str) -> dict[str, Any] | None:
         """Retrieve entry from SQLite database.
-        
+
         Args:
             entry_id: Unique identifier.
-            
+
         Returns:
             Entry data if found, None otherwise.
         """
@@ -430,51 +437,54 @@ class FactualMemory(BaseMemory):
         filters: dict[str, Any] | None,
     ) -> list[dict[str, Any]]:
         """Search entries in SQLite database.
-        
+
         Args:
             query: Search query (searches content field).
             limit: Maximum results to return.
             filters: Optional filters to apply.
-            
+
         Returns:
             List of matching entries.
         """
         # Build SQL query with LIKE search
-        sql_query = "SELECT * FROM memory_entries WHERE content LIKE ?"
+        sql_query: str = "SELECT * FROM memory_entries WHERE content LIKE ?"
         params: list[Any] = [f"%{query}%"]
 
         # Apply filters
         if filters:
-            if filters.get("type"):
+            filter_type: Any = filters.get("type")
+            if filter_type:
                 sql_query += " AND content_type = ?"
-                params.append(filters["type"])
-            
-            if filters.get("file_path"):
+                params.append(str(filter_type))
+
+            filter_file_path: Any = filters.get("file_path")
+            if filter_file_path:
                 sql_query += " AND file_path = ?"
-                params.append(filters["file_path"])
-            
-            if filters.get("project_id"):
+                params.append(str(filter_file_path))
+
+            filter_project_id: Any = filters.get("project_id")
+            if filter_project_id:
                 sql_query += " AND project_id = ?"
-                params.append(filters["project_id"])
+                params.append(str(filter_project_id))
 
         # Order by timestamp descending
         sql_query += " ORDER BY timestamp DESC LIMIT ?"
         params.append(limit)
 
-        conn = self._get_connection()
+        conn: sqlite3.Connection = self._get_connection()
         try:
-            cursor = conn.execute(sql_query, params)
-            rows = cursor.fetchall()
+            cursor: sqlite3.Cursor = conn.execute(sql_query, params)
+            rows: list[sqlite3.Row] = cursor.fetchall()
             return [self._row_to_dict(row) for row in rows]
         finally:
             conn.close()
 
     def _delete_entry(self, entry_id: str) -> bool:
         """Delete entry from SQLite database.
-        
+
         Args:
             entry_id: Unique identifier.
-            
+
         Returns:
             True if deleted, False if not found.
         """
@@ -482,33 +492,36 @@ class FactualMemory(BaseMemory):
 
     def _count_entries(self, filters: dict[str, Any] | None) -> int:
         """Count entries matching filters.
-        
+
         Args:
             filters: Optional filters to apply.
-            
+
         Returns:
             Number of matching entries.
         """
-        query = "SELECT COUNT(*) as total FROM memory_entries WHERE 1=1"
+        query: str = "SELECT COUNT(*) as total FROM memory_entries WHERE 1=1"
         params: list[Any] = []
 
         if filters:
-            if filters.get("type"):
+            filter_type: Any = filters.get("type")
+            if filter_type:
                 query += " AND content_type = ?"
-                params.append(filters["type"])
-            
-            if filters.get("file_path"):
-                query += " AND file_path = ?"
-                params.append(filters["file_path"])
-            
-            if filters.get("project_id"):
-                query += " AND project_id = ?"
-                params.append(filters["project_id"])
+                params.append(str(filter_type))
 
-        conn = self._get_connection()
+            filter_file_path: Any = filters.get("file_path")
+            if filter_file_path:
+                query += " AND file_path = ?"
+                params.append(str(filter_file_path))
+
+            filter_project_id: Any = filters.get("project_id")
+            if filter_project_id:
+                query += " AND project_id = ?"
+                params.append(str(filter_project_id))
+
+        conn: sqlite3.Connection = self._get_connection()
         try:
-            cursor = conn.execute(query, params)
-            result = cursor.fetchone()
+            cursor: sqlite3.Cursor = conn.execute(query, params)
+            result: sqlite3.Row | None = cursor.fetchone()
             return result["total"] if result else 0
         finally:
             conn.close()

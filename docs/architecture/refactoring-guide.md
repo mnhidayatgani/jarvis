@@ -67,10 +67,10 @@ Create types in `jarvis-cli/src/commands/base/types.ts`:
 export interface ExportOptions extends BaseCommandOptions {
   /** Output file path */
   output: string;
-  
+
   /** Export format: json or markdown */
-  format?: 'json' | 'markdown';
-  
+  format?: "json" | "markdown";
+
   /** Optional filter by type */
   type?: string;
 }
@@ -78,10 +78,10 @@ export interface ExportOptions extends BaseCommandOptions {
 export interface ExportResult {
   /** Number of entries exported */
   count: number;
-  
+
   /** Output file path */
   file: string;
-  
+
   /** File size in bytes */
   size: number;
 }
@@ -92,43 +92,40 @@ export interface ExportResult {
 Create `jarvis-cli/src/commands/export.ts`:
 
 ```typescript
-import { BaseCommand } from './base/command';
-import { ExportOptions, ExportResult } from './base/types';
-import { IMCPClient } from '../api/types';
-import { IOutputFormatter } from '../utils/output';
+import { BaseCommand } from "./base/command";
+import { ExportOptions, ExportResult } from "./base/types";
+import { IMCPClient } from "../api/types";
+import { IOutputFormatter } from "../utils/output";
 import {
   MissingArgumentError,
   InvalidArgumentError,
   MCPConnectionError,
-} from '../core/errors';
+} from "../core/errors";
 
 export class ExportCommand extends BaseCommand<ExportOptions, ExportResult> {
-  constructor(
-    private client: IMCPClient,
-    private formatter: IOutputFormatter
-  ) {
+  constructor(private client: IMCPClient, private formatter: IOutputFormatter) {
     super();
   }
 
   parse(args: string[]): ExportOptions {
     const options: ExportOptions = {
-      output: '',
-      format: 'json',
+      output: "",
+      format: "json",
     };
 
     // Parse arguments
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
-      
-      if (arg === '--output' || arg === '-o') {
+
+      if (arg === "--output" || arg === "-o") {
         options.output = args[++i];
-      } else if (arg === '--format' || arg === '-f') {
-        options.format = args[++i] as 'json' | 'markdown';
-      } else if (arg === '--type' || arg === '-t') {
+      } else if (arg === "--format" || arg === "-f") {
+        options.format = args[++i] as "json" | "markdown";
+      } else if (arg === "--type" || arg === "-t") {
         options.type = args[++i];
-      } else if (arg === '--json') {
+      } else if (arg === "--json") {
         options.json = true;
-      } else if (arg === '--verbose') {
+      } else if (arg === "--verbose") {
         options.verbose = true;
       }
     }
@@ -139,13 +136,13 @@ export class ExportCommand extends BaseCommand<ExportOptions, ExportResult> {
   validate(options: ExportOptions): void {
     // Required fields
     if (!options.output) {
-      throw new MissingArgumentError('output');
+      throw new MissingArgumentError("output");
     }
 
     // Format validation
-    if (options.format && !['json', 'markdown'].includes(options.format)) {
+    if (options.format && !["json", "markdown"].includes(options.format)) {
       throw new InvalidArgumentError(
-        'format',
+        "format",
         options.format,
         'Must be either "json" or "markdown"'
       );
@@ -155,24 +152,27 @@ export class ExportCommand extends BaseCommand<ExportOptions, ExportResult> {
   async execute(options: ExportOptions): Promise<ExportResult> {
     try {
       // Call MCP server
-      const response = await this.client.callTool('export_memories', {
+      const response = await this.client.callTool("export_memories", {
         output: options.output,
         format: options.format,
         type_filter: options.type,
       });
 
       if (!response.success) {
-        const errorMsg = typeof response.error === 'string'
-          ? response.error
-          : (response.error as any)?.message || 'Export failed';
-        throw new MCPConnectionError(errorMsg, 'mcp://export_memories');
+        const errorMsg =
+          typeof response.error === "string"
+            ? response.error
+            : (response.error as any)?.message || "Export failed";
+        throw new MCPConnectionError(errorMsg, "mcp://export_memories");
       }
 
       const data = response.data as any;
-      
+
       // Display output
       if (!options.json) {
-        this.formatter.success(`Exported ${data.count} entries to ${data.file}`);
+        this.formatter.success(
+          `Exported ${data.count} entries to ${data.file}`
+        );
         if (options.verbose) {
           this.formatter.info(`File size: ${data.size} bytes`, false);
         }
@@ -186,7 +186,7 @@ export class ExportCommand extends BaseCommand<ExportOptions, ExportResult> {
       };
     } catch (error) {
       if (error instanceof Error) {
-        throw new MCPConnectionError(error.message, 'mcp://export_memories');
+        throw new MCPConnectionError(error.message, "mcp://export_memories");
       }
       throw error;
     }
@@ -213,11 +213,11 @@ case 'export':
 Create `jarvis-cli/tests/unit/commands/export.test.ts`:
 
 ```typescript
-import { describe, it, expect, beforeEach } from 'vitest';
-import { ExportCommand } from '../../../src/commands/export';
-import { createMockMCPClient, createMockFormatter } from '../../helpers/mocks';
+import { describe, it, expect, beforeEach } from "vitest";
+import { ExportCommand } from "../../../src/commands/export";
+import { createMockMCPClient, createMockFormatter } from "../../helpers/mocks";
 
-describe('ExportCommand', () => {
+describe("ExportCommand", () => {
   let command: ExportCommand;
   let mockClient: ReturnType<typeof createMockMCPClient>;
   let mockFormatter: ReturnType<typeof createMockFormatter>;
@@ -228,47 +228,50 @@ describe('ExportCommand', () => {
     command = new ExportCommand(mockClient, mockFormatter);
   });
 
-  describe('parse', () => {
-    it('should parse output argument', () => {
-      const options = command.parse(['--output', 'export.json']);
-      expect(options.output).toBe('export.json');
-      expect(options.format).toBe('json');
+  describe("parse", () => {
+    it("should parse output argument", () => {
+      const options = command.parse(["--output", "export.json"]);
+      expect(options.output).toBe("export.json");
+      expect(options.format).toBe("json");
     });
 
-    it('should parse format argument', () => {
-      const options = command.parse(['-o', 'out.md', '-f', 'markdown']);
-      expect(options.format).toBe('markdown');
-    });
-  });
-
-  describe('validate', () => {
-    it('should throw if output missing', () => {
-      expect(() => command.validate({ output: '' }))
-        .toThrow('Missing required argument: output');
-    });
-
-    it('should throw if format invalid', () => {
-      expect(() => command.validate({
-        output: 'test.txt',
-        format: 'xml' as any,
-      })).toThrow('Must be either "json" or "markdown"');
+    it("should parse format argument", () => {
+      const options = command.parse(["-o", "out.md", "-f", "markdown"]);
+      expect(options.format).toBe("markdown");
     });
   });
 
-  describe('execute', () => {
-    it('should export memories successfully', async () => {
+  describe("validate", () => {
+    it("should throw if output missing", () => {
+      expect(() => command.validate({ output: "" })).toThrow(
+        "Missing required argument: output"
+      );
+    });
+
+    it("should throw if format invalid", () => {
+      expect(() =>
+        command.validate({
+          output: "test.txt",
+          format: "xml" as any,
+        })
+      ).toThrow('Must be either "json" or "markdown"');
+    });
+  });
+
+  describe("execute", () => {
+    it("should export memories successfully", async () => {
       mockClient.callTool.mockResolvedValue({
         success: true,
-        data: { count: 42, file: 'export.json', size: 1024 },
+        data: { count: 42, file: "export.json", size: 1024 },
       });
 
-      const result = await command.execute({ output: 'export.json' });
+      const result = await command.execute({ output: "export.json" });
 
       expect(result.count).toBe(42);
-      expect(result.file).toBe('export.json');
-      expect(mockClient.callTool).toHaveBeenCalledWith('export_memories', {
-        output: 'export.json',
-        format: 'json',
+      expect(result.file).toBe("export.json");
+      expect(mockClient.callTool).toHaveBeenCalledWith("export_memories", {
+        output: "export.json",
+        format: "json",
         type_filter: undefined,
       });
     });
@@ -277,6 +280,7 @@ describe('ExportCommand', () => {
 ```
 
 Run test:
+
 ```bash
 npm test -- export.test.ts
 ```
@@ -329,20 +333,24 @@ validate(options: RememberOptions): void {
 In `jarvis-cli/tests/unit/commands/remember.test.ts`:
 
 ```typescript
-describe('validate', () => {
+describe("validate", () => {
   // Existing tests...
 
-  it('should throw if content too short', () => {
-    expect(() => command.validate({
-      content: 'short',
-    })).toThrow('Content too short');
+  it("should throw if content too short", () => {
+    expect(() =>
+      command.validate({
+        content: "short",
+      })
+    ).toThrow("Content too short");
   });
 
-  it('should throw if content too long', () => {
-    const longContent = 'x'.repeat(10001);
-    expect(() => command.validate({
-      content: longContent,
-    })).toThrow('Content too long');
+  it("should throw if content too long", () => {
+    const longContent = "x".repeat(10001);
+    expect(() =>
+      command.validate({
+        content: longContent,
+      })
+    ).toThrow("Content too long");
   });
 });
 ```
@@ -399,16 +407,16 @@ class FactualMemory(BaseMemory):
         limit: int = 10
     ) -> list[dict[str, Any]]:
         """Get recent decision entries.
-        
+
         Args:
             days: Number of days to look back.
             limit: Maximum results to return.
-            
+
         Returns:
             List of recent decision entries.
         """
         cutoff_time = time.time() - (days * 24 * 60 * 60)
-        
+
         conn = self._get_connection()
         try:
             cursor = conn.execute(
@@ -435,17 +443,17 @@ Create test in `jarvis-mcp/tests/unit/memory/test_factual.py`:
 def test_get_recent_decisions(tmp_path):
     """Test getting recent decisions."""
     memory = FactualMemory(tmp_path / "test.db")
-    
+
     # Create test entries
     memory.create_entry(
         project_id="test",
         content="Use PostgreSQL",
         content_type="decision",
     )
-    
+
     # Query recent decisions
     decisions = memory.get_recent_decisions(days=7, limit=10)
-    
+
     assert len(decisions) == 1
     assert decisions[0]["content_type"] == "decision"
 ```
@@ -462,13 +470,14 @@ def test_get_recent_decisions(tmp_path):
 
 ```typescript
 // ❌ Bad
-throw new Error('Invalid input');
+throw new Error("Invalid input");
 
 // ✅ Good
-throw new ValidationError('Invalid input', 'fieldName', context);
+throw new ValidationError("Invalid input", "fieldName", context);
 ```
 
 **Error Hierarchy**:
+
 ```
 JarvisError (base)
 ├── NotInitializedError
@@ -485,13 +494,13 @@ JarvisError (base)
 
 ```typescript
 // ❌ Bad
-const result = await client.callTool('remember', data);
+const result = await client.callTool("remember", data);
 
 // ✅ Good
 try {
-  const response = await client.callTool('remember', data);
+  const response = await client.callTool("remember", data);
   if (!response.success) {
-    throw new MCPConnectionError(response.error, 'mcp://remember');
+    throw new MCPConnectionError(response.error, "mcp://remember");
   }
   return response.data;
 } catch (error) {
@@ -509,7 +518,7 @@ const data: any = response.data;
 
 // ✅ Good
 const data = response.data as unknown;
-if (typeof data === 'object' && data !== null && 'count' in data) {
+if (typeof data === "object" && data !== null && "count" in data) {
   const count = (data as { count: number }).count;
 }
 ```
@@ -520,14 +529,14 @@ if (typeof data === 'object' && data !== null && 'count' in data) {
 
 ```typescript
 // ❌ Bad
-console.log('Memory stored successfully');
+console.log("Memory stored successfully");
 
 // ✅ Good
-this.formatter.success('Memory stored', 'Sir');
+this.formatter.success("Memory stored", "Sir");
 // Output: "✓ Memory stored, Sir."
 
 // ✅ Good (error)
-this.formatter.error('Failed to connect to MCP server');
+this.formatter.error("Failed to connect to MCP server");
 // Output: "✗ I apologize, Sir. Failed to connect to MCP server"
 ```
 
@@ -540,33 +549,34 @@ this.formatter.error('Failed to connect to MCP server');
 **Test each method in isolation**:
 
 ```typescript
-describe('RememberCommand', () => {
-  describe('parse', () => {
-    it('should parse content argument', () => {
-      const options = command.parse(['Using PostgreSQL']);
-      expect(options.content).toBe('Using PostgreSQL');
+describe("RememberCommand", () => {
+  describe("parse", () => {
+    it("should parse content argument", () => {
+      const options = command.parse(["Using PostgreSQL"]);
+      expect(options.content).toBe("Using PostgreSQL");
     });
   });
 
-  describe('validate', () => {
-    it('should throw if content empty', () => {
-      expect(() => command.validate({ content: '' }))
-        .toThrow(MissingArgumentError);
+  describe("validate", () => {
+    it("should throw if content empty", () => {
+      expect(() => command.validate({ content: "" })).toThrow(
+        MissingArgumentError
+      );
     });
   });
 
-  describe('execute', () => {
-    it('should call MCP client', async () => {
+  describe("execute", () => {
+    it("should call MCP client", async () => {
       mockClient.callTool.mockResolvedValue({
         success: true,
-        data: { id: '123' },
+        data: { id: "123" },
       });
 
-      await command.execute({ content: 'test' });
+      await command.execute({ content: "test" });
 
       expect(mockClient.callTool).toHaveBeenCalledWith(
-        'remember_context',
-        expect.objectContaining({ content: 'test' })
+        "remember_context",
+        expect.objectContaining({ content: "test" })
       );
     });
   });
@@ -578,12 +588,12 @@ describe('RememberCommand', () => {
 **Test full command flow**:
 
 ```typescript
-describe('RememberCommand Integration', () => {
-  it('should store and retrieve memory', async () => {
+describe("RememberCommand Integration", () => {
+  it("should store and retrieve memory", async () => {
     const command = new RememberCommand(realClient, formatter);
-    
-    const result = await command.run(['Using Redis for caching']);
-    
+
+    const result = await command.run(["Using Redis for caching"]);
+
     expect(result.success).toBe(true);
     expect(result.data.id).toBeDefined();
   });
@@ -617,6 +627,7 @@ uv run pytest --cov=src/jarvis     # With coverage
 **Solutions**:
 
 1. **Unused variables**: Prefix with underscore
+
    ```typescript
    validate(_options: SomeOptions): void {
      // options not used yet
@@ -624,13 +635,14 @@ uv run pytest --cov=src/jarvis     # With coverage
    ```
 
 2. **Type mismatch**: Use proper casting
+
    ```typescript
    const config = loadConfig() as unknown as Record<string, unknown>;
    ```
 
 3. **Missing types**: Check imports
    ```typescript
-   import type { IMCPClient } from '../api/types';
+   import type { IMCPClient } from "../api/types";
    ```
 
 ### Python Type Errors
@@ -640,6 +652,7 @@ uv run pytest --cov=src/jarvis     # With coverage
 **Solutions**:
 
 1. **Missing type hints**: Add them
+
    ```python
    def get_entry(self, entry_id: str) -> dict[str, Any] | None:
    ```
@@ -658,18 +671,20 @@ uv run pytest --cov=src/jarvis     # With coverage
 **Debug Steps**:
 
 1. Run single test:
+
    ```bash
    npm test -- --run specific.test.ts
    ```
 
 2. Check mock setup:
+
    ```typescript
    mockClient.callTool.mockResolvedValue({ success: true, data: {} });
    ```
 
 3. Add debug output:
    ```typescript
-   console.log('Options:', options);
+   console.log("Options:", options);
    ```
 
 ### Import Errors
@@ -681,7 +696,7 @@ uv run pytest --cov=src/jarvis     # With coverage
 1. Check file path (case-sensitive)
 2. Verify export exists:
    ```typescript
-   export class MyCommand { }  // not: export default
+   export class MyCommand {} // not: export default
    ```
 3. Check tsconfig.json paths
 
@@ -707,6 +722,7 @@ Before committing code, verify:
 
 ✅ **Completed**: Added new command / validation  
 📖 **Learn More**:
+
 - [Architecture Overview](./overview.md) - Understand system design
 - [ADR-001: Command Pattern](./adr-001-command-pattern.md) - Deep dive on commands
 - [ADR-002: Memory Interfaces](./adr-002-memory-interfaces.md) - Memory layer details

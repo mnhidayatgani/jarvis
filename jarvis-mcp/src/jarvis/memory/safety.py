@@ -131,7 +131,7 @@ def create_checkpoint(
 
         # Store checkpoint metadata in factual memory if provided
         if factual_memory and stash_ref:
-            metadata = {
+            metadata_dict = {
                 "type": "checkpoint",
                 "stash_ref": stash_ref,
                 "reason": reason,
@@ -140,10 +140,10 @@ def create_checkpoint(
             }
 
             factual_memory.create_entry(
-                project_id=project_id,
+                project_id=project_root,
                 content=f"Checkpoint created: {reason}",
-                metadata=metadata,
-                entry_type="checkpoint",
+                content_type="checkpoint",
+                metadata=metadata_dict,
             )
 
         return checkpoint_data

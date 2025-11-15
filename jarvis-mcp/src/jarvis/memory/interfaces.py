@@ -1,7 +1,8 @@
 """Memory layer interfaces using Protocol for structural typing."""
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Protocol, Sequence
+from typing import Any, Protocol
 
 
 class IMemoryLayer(Protocol):

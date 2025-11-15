@@ -8,6 +8,7 @@
 ## Context and Problem Statement
 
 JARVIS CLI previously had 11+ command implementations with inconsistent structure:
+
 - Mixed argument parsing strategies (some manual, some ad-hoc)
 - No standardized validation approach
 - Duplicated error handling across commands
@@ -29,18 +30,23 @@ JARVIS CLI previously had 11+ command implementations with inconsistent structur
 ## Considered Options
 
 ### Option 1: Continue with Ad-hoc Command Structure
+
 **Pros**:
+
 - No refactoring needed
 - Developers already familiar with code
 
 **Cons**:
+
 - High cognitive load for new features
 - Inconsistent error handling
 - Hard to test
 - No clear best practices
 
 ### Option 2: Command Pattern with Template Method
+
 **Pros**:
+
 - Consistent structure enforced by base class
 - Clear lifecycle: parse → validate → execute
 - Easy to test each phase independently
@@ -48,15 +54,19 @@ JARVIS CLI previously had 11+ command implementations with inconsistent structur
 - Self-documenting code
 
 **Cons**:
+
 - Requires refactoring existing commands
 - Initial learning curve for pattern
 
 ### Option 3: Functional Approach with Shared Utilities
+
 **Pros**:
+
 - Simpler mental model
 - Less boilerplate
 
 **Cons**:
+
 - No enforcement of structure
 - Type safety harder to achieve
 - Validation still scattered
@@ -79,7 +89,9 @@ interface ICommand<TOptions, TResult> {
 }
 
 // Abstract Base Class
-abstract class BaseCommand<TOptions, TResult> implements ICommand<TOptions, TResult> {
+abstract class BaseCommand<TOptions, TResult>
+  implements ICommand<TOptions, TResult>
+{
   abstract parse(args: string[]): TOptions;
   abstract validate(options: TOptions): void;
   abstract execute(options: TOptions): Promise<TResult>;
@@ -120,6 +132,7 @@ class RememberCommand extends BaseCommand<RememberOptions, RememberResult> {
 ### Key Design Principles
 
 1. **Single Responsibility**: Each method has one job
+
    - `parse()`: Convert strings to typed objects
    - `validate()`: Check business rules
    - `execute()`: Perform the action
@@ -133,6 +146,7 @@ class RememberCommand extends BaseCommand<RememberOptions, RememberResult> {
 ### Example: Adding Validation to Remember Command
 
 **Before** (estimated time: 2+ hours of code archaeology):
+
 ```typescript
 export async function remember(args: string[]) {
   // Find where args are parsed (line 45?)
@@ -143,17 +157,18 @@ export async function remember(args: string[]) {
 ```
 
 **After** (estimated time: <10 minutes):
+
 ```typescript
 class RememberCommand extends BaseCommand<RememberOptions, RememberResult> {
   validate(options: RememberOptions): void {
     // All validation in one place
     if (!options.content) {
-      throw new MissingArgumentError('content');
+      throw new MissingArgumentError("content");
     }
-    
+
     // Add new validation rule here
     if (options.content.length > 10000) {
-      throw new ValidationError('Content too long', 'content', options.content);
+      throw new ValidationError("Content too long", "content", options.content);
     }
   }
 }
@@ -185,18 +200,19 @@ class RememberCommand extends BaseCommand<RememberOptions, RememberResult> {
 
 ### Success Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| New dev onboarding time | <30 min | 22 min | ✅ PASS |
-| Commands following pattern | 100% | 100% | ✅ PASS |
-| Test coverage for commands | >80% | 89% | ✅ PASS |
-| Type errors in commands | 0 | 0 | ✅ PASS |
+| Metric                     | Target  | Actual | Status  |
+| -------------------------- | ------- | ------ | ------- |
+| New dev onboarding time    | <30 min | 22 min | ✅ PASS |
+| Commands following pattern | 100%    | 100%   | ✅ PASS |
+| Test coverage for commands | >80%    | 89%    | ✅ PASS |
+| Type errors in commands    | 0       | 0      | ✅ PASS |
 
 ### Independent Test Results
 
 **Task**: New developer adds validation rule to `remember` command requiring content length between 10-10,000 characters.
 
 **Result**: Completed in 22 minutes including:
+
 - Reading BaseCommand documentation (8 min)
 - Finding validate() method (2 min)
 - Adding validation logic (5 min)
@@ -207,6 +223,7 @@ class RememberCommand extends BaseCommand<RememberOptions, RememberResult> {
 ## Implementation Status
 
 **Refactored Commands** (7/11 as of Nov 15, 2025):
+
 - ✅ InitCommand
 - ✅ StatusCommand
 - ✅ ConfigCommand
@@ -216,6 +233,7 @@ class RememberCommand extends BaseCommand<RememberOptions, RememberResult> {
 - ✅ DoctorCommand
 
 **Pending** (4/11 - Phase 10):
+
 - ⏳ CheckpointCommand
 - ⏳ RollbackCommand
 - ⏳ ValidateCommand

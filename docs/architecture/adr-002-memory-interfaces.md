@@ -8,11 +8,13 @@
 ## Context and Problem Statement
 
 JARVIS uses a 3-layer memory architecture:
+
 - **L1 Factual**: SQLite for structured facts
 - **L2 Semantic**: ChromaDB for vector embeddings
 - **L3 Snapshot**: Filesystem for code diffs
 
 **Problems**:
+
 - Each layer implemented with completely different interfaces
 - No shared validation or error handling logic
 - Code duplication for common operations (initialize, store, search, delete, count)
@@ -32,33 +34,42 @@ JARVIS uses a 3-layer memory architecture:
 ## Considered Options
 
 ### Option 1: Protocol-Only Approach
+
 **Pros**:
+
 - Structural typing, no inheritance needed
 - Minimal coupling
 - Duck typing friendly
 
 **Cons**:
+
 - No code reuse for common logic
 - Each layer reimplements validation
 - No shared initialization flow
 
 ### Option 2: Abstract Base Class with Template Method
+
 **Pros**:
+
 - Shared code for common operations
 - Enforced initialization flow
 - Centralized validation logic
 - Clear lifecycle management
 
 **Cons**:
+
 - Tighter coupling through inheritance
 - May feel "heavy" for Python
 
 ### Option 3: Composition with Helper Classes
+
 **Pros**:
+
 - More flexible than inheritance
 - Can mix and match behaviors
 
 **Cons**:
+
 - More complex architecture
 - No enforcement of interface
 - Type safety harder to achieve
@@ -146,12 +157,13 @@ class SnapshotMemory(BaseMemory):
 
 ### Why Both Protocol and ABC?
 
-1. **Protocol (IMemoryLayer)**: Defines what a memory layer *is*
+1. **Protocol (IMemoryLayer)**: Defines what a memory layer _is_
+
    - Used for type hints and type checking
    - Structural typing - any class matching the interface works
    - Enables duck typing while maintaining type safety
 
-2. **ABC (BaseMemory)**: Defines how memory layers *work*
+2. **ABC (BaseMemory)**: Defines how memory layers _work_
    - Provides shared implementation
    - Template Method enforces correct flow
    - Centralizes validation and error handling
@@ -165,20 +177,20 @@ def store(self, entry: MemoryEntry) -> str:
     # Shared logic: initialization check
     if not self._initialized:
         raise RuntimeError("Not initialized")
-    
+
     # Shared logic: validation
     self.validate_entry_data(entry.content, entry.metadata)
-    
+
     # Prepare metadata (shared)
     metadata = {
         "type": entry.type,
         "tags": entry.tags,
         ...
     }
-    
+
     # Delegate to subclass (storage-specific)
     self._store_entry(entry.id, entry.content, metadata)
-    
+
     return entry.id
 ```
 
@@ -187,12 +199,14 @@ def store(self, entry: MemoryEntry) -> str:
 ### Design Principles
 
 1. **Separation of Concerns**:
+
    - Public methods (`store`, `search`) - shared logic in BaseMemory
    - Private methods (`_store_entry`, `_search_entries`) - subclass-specific
 
 2. **Fail Fast**: Validation happens before storage operations
 
 3. **Progressive Enhancement**: Base class provides minimum viable interface, subclasses can add specialized methods:
+
    - `FactualMemory.query_entries()` - SQL-specific filtering
    - `SemanticMemory.search_semantic()` - similarity scoring
    - `SnapshotMemory.list_snapshots()` - file-based queries
@@ -242,16 +256,19 @@ def store(self, entry: MemoryEntry) -> str:
 ### Layer-Specific Methods (Preserved)
 
 **FactualMemory**:
+
 - `create_entry()` - backward compatible
 - `query_entries()` - SQL-specific filters
 - `get_stats()` - database statistics
 
 **SemanticMemory**:
+
 - `add_semantic_entry()` - embedding generation
 - `search_semantic()` - similarity scoring
 - `get_embeddings()` - retrieve vectors
 
 **SnapshotMemory**:
+
 - `save_snapshot()` - git diff storage
 - `list_snapshots()` - file-based queries
 - `cleanup_old_snapshots()` - retention policies
@@ -260,16 +277,17 @@ def store(self, entry: MemoryEntry) -> str:
 
 ### Success Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Code reuse | >70% | 85% | ✅ PASS |
-| Consistent interface | 100% | 100% | ✅ PASS |
-| Backward compatibility | 100% | 100% | ✅ PASS |
-| Type coverage | >90% | 94% | ✅ PASS |
+| Metric                 | Target | Actual | Status  |
+| ---------------------- | ------ | ------ | ------- |
+| Code reuse             | >70%   | 85%    | ✅ PASS |
+| Consistent interface   | 100%   | 100%   | ✅ PASS |
+| Backward compatibility | 100%   | 100%   | ✅ PASS |
+| Type coverage          | >90%   | 94%    | ✅ PASS |
 
 ### Testing Benefits
 
 **Before** (testing FactualMemory):
+
 ```python
 def test_store():
     # Need to initialize database
@@ -279,6 +297,7 @@ def test_store():
 ```
 
 **After**:
+
 ```python
 def test_store():
     memory = FactualMemory(tmp_path / "test.db")

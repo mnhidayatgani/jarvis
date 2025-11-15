@@ -57,8 +57,9 @@ export async function handleCleanup(
         }
 
         const result = await mcpClient.callTool('list_checkpoints', {})
+        const data = result.data as { checkpoints?: Array<{ checkpoint_id: string; message: string; timestamp: string }> } | undefined
 
-        if (!result.data.checkpoints || result.data.checkpoints.length === 0) {
+        if (!data?.checkpoints || data.checkpoints.length === 0) {
           console.log('✅ No checkpoints to clean up\n')
           return
         }
@@ -66,11 +67,11 @@ export async function handleCleanup(
         // Filter checkpoints older than threshold
         const threshold = options.olderThan || 7 // default 7 days
         const now = new Date()
-        const oldCheckpoints = result.data.checkpoints.filter(
-          (cp: any) => {
+        const checkpoints = data.checkpoints || []
+        const oldCheckpoints = checkpoints.filter(
+          (cp) => {
             const cpDate = new Date(cp.timestamp)
-            const daysDiff =
-              (now.getTime() - cpDate.getTime()) / (1000 * 60 * 60 * 24)
+            const daysDiff = (now.getTime() - cpDate.getTime()) / (1000 * 60 * 60 * 24)
             return daysDiff > threshold
           },
         )
@@ -120,12 +121,13 @@ export async function handleCleanup(
           'Valid targets: memory, checkpoints, all'
         )
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (options.json) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.log(
         JSON.stringify({
           success: false,
-          error: error.message,
+          error: errorMessage,
         }),
       )
       process.exit(1)
@@ -135,17 +137,18 @@ export async function handleCleanup(
       throw error
     }
     // Re-throw as MCPConnectionError or InternalError based on error type
-    if (error.message?.includes('MCP') || error.message?.includes('connection')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('MCP') || errorMessage.includes('connection')) {
       throw new MCPConnectionError(
         'Failed to cleanup resources',
         'unknown',
-        error
+        error instanceof Error ? error : undefined
       )
     }
     throw new InternalError(
-      `Cleanup failed: ${error.message}`,
+      `Cleanup failed: ${errorMessage}`,
       undefined,
-      error
+      error instanceof Error ? error : undefined
     )
   }
 }

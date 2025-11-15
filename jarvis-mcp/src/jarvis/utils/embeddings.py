@@ -47,7 +47,7 @@ class EmbeddingsWrapper:
 
         # Convert numpy array to list
         if isinstance(embedding, np.ndarray):
-            return embedding.tolist()
+            return list(embedding.tolist())
 
         return list(embedding)
 
@@ -71,7 +71,8 @@ class EmbeddingsWrapper:
 
         # Convert numpy arrays to lists
         if isinstance(embeddings, np.ndarray):
-            return embeddings.tolist()
+            result = embeddings.tolist()
+            return result if isinstance(result, list) else [result]
 
         return [emb.tolist() if isinstance(emb, np.ndarray) else list(emb) for emb in embeddings]
 

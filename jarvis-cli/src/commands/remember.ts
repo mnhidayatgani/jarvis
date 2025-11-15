@@ -25,7 +25,10 @@ export class RememberCommand extends BaseCommand<
       const arg = args[i];
 
       if (arg === "--type" || arg === "-t") {
-        options.type = args[++i];
+        const typeValue = args[++i];
+        if (typeValue === "decision" || typeValue === "note" || typeValue === "context") {
+          options.type = typeValue;
+        }
       } else if (arg === "--tags") {
         const tagsStr = args[++i];
         options.tags = tagsStr.split(",").map((t) => t.trim());
@@ -114,19 +117,25 @@ export class RememberCommand extends BaseCommand<
       if (!response.success) {
         const errorMsg = typeof response.error === 'string'
           ? response.error
-          : (response.error as any)?.message || "Failed to store memory";
+          : (typeof response.error === 'object' && response.error !== null && 'message' in response.error)
+            ? String((response.error as { message: unknown }).message)
+            : "Failed to store memory";
         throw new MCPConnectionError(
           errorMsg,
           "mcp://remember_context"
         );
       }
 
-      const data = response.data as any;
+      const data = response.data as { memory_id?: string; id?: string; type?: string; timestamp?: string } | undefined;
+      const memoryId = data?.memory_id || data?.id;
+      if (!memoryId) {
+        throw new InternalError("No memory ID returned from server");
+      }
       return {
         success: true,
-        memory_id: data.memory_id || data.id,
-        type: data.type || options.type || "decision",
-        timestamp: data.timestamp,
+        memory_id: memoryId,
+        type: data?.type || options.type || "decision",
+        timestamp: data?.timestamp,
       };
     } catch (error) {
       if (error instanceof MCPConnectionError) {

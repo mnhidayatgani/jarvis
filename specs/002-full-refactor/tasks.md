@@ -94,7 +94,7 @@
 - [x] T044 [US1] Refactor FactualMemory to extend BaseMemory in jarvis-mcp/src/jarvis/memory/factual.py
 - [x] T045 [US1] Refactor SemanticMemory to extend BaseMemory in jarvis-mcp/src/jarvis/memory/semantic.py
 - [x] T046 [US1] Refactor SnapshotMemory to extend BaseMemory in jarvis-mcp/src/jarvis/memory/snapshot.py
-- [ ] T047 [US1] Update MemoryCore to use base classes in jarvis-mcp/src/jarvis/memory/core.py
+- [x] T047 [US1] Update MemoryCore to use base classes in jarvis-mcp/src/jarvis/memory/core.py
 
 ### Documentation
 
@@ -115,31 +115,31 @@
 
 ### TypeScript Type Coverage
 
-- [ ] T052 [P] [US2] Define all command option types in jarvis-cli/src/commands/base/types.ts
-- [ ] T053 [P] [US2] Define all command result types in jarvis-cli/src/commands/base/types.ts
-- [ ] T054 [P] [US2] Create type guards for runtime validation in jarvis-cli/src/core/validators/input.ts
-- [ ] T055 [P] [US2] Add explicit types to all MCPClient methods in jarvis-cli/src/api/client.ts
-- [ ] T056 [P] [US2] Add explicit types to OutputFormatter in jarvis-cli/src/utils/output.ts
-- [ ] T057 [P] [US2] Add explicit types to ConfigManager in jarvis-cli/src/config/config.ts
-- [ ] T058 [US2] Remove all `any` types from jarvis-cli/src/ replacing with `unknown` or explicit types
-- [ ] T059 [US2] Add JSDoc comments with type examples for complex types in jarvis-cli/src/core/types/
+- [x] T052 [P] [US2] Define all command option types in jarvis-cli/src/commands/base/types.ts
+- [x] T053 [P] [US2] Define all command result types in jarvis-cli/src/commands/base/types.ts
+- [x] T054 [P] [US2] Create type guards for runtime validation in jarvis-cli/src/core/validators/input.ts
+- [x] T055 [P] [US2] Add explicit types to all MCPClient methods in jarvis-cli/src/api/mcp-client.ts
+- [x] T056 [P] [US2] Add explicit types to OutputFormatter in jarvis-cli/src/utils/output.ts
+- [x] T057 [P] [US2] Add explicit types to ConfigManager in jarvis-cli/src/config/config.ts
+- [x] T058 [US2] Remove all `any` types from jarvis-cli/src/ replacing with `unknown` or explicit types
+- [x] T059 [US2] Add JSDoc comments with type examples for complex types in jarvis-cli/src/core/types/
 
 ### Python Type Coverage
 
-- [ ] T060 [P] [US2] Add complete type hints to all FactualMemory methods in jarvis-mcp/src/jarvis/memory/factual.py
-- [ ] T061 [P] [US2] Add complete type hints to all SemanticMemory methods in jarvis-mcp/src/jarvis/memory/semantic.py
-- [ ] T062 [P] [US2] Add complete type hints to all SnapshotMemory methods in jarvis-mcp/src/jarvis/memory/snapshot.py
-- [ ] T063 [P] [US2] Add complete type hints to all MCPTools methods in jarvis-mcp/src/jarvis/mcp/tools.py
-- [ ] T064 [P] [US2] Add complete type hints to all Scanner methods in jarvis-mcp/src/jarvis/capture/scanner.py
-- [ ] T065 [US2] Add Pydantic validators for all input data in jarvis-mcp/src/jarvis/core/validators.py
-- [ ] T066 [US2] Add Google-style docstrings with type examples for complex types
+- [x] T060 [P] [US2] Add complete type hints to all FactualMemory methods in jarvis-mcp/src/jarvis/memory/factual.py
+- [x] T061 [P] [US2] Add complete type hints to all SemanticMemory methods in jarvis-mcp/src/jarvis/memory/semantic.py
+- [x] T062 [P] [US2] Add complete type hints to all SnapshotMemory methods in jarvis-mcp/src/jarvis/memory/snapshot.py
+- [x] T063 [P] [US2] Add complete type hints to all MCPTools methods in jarvis-mcp/src/jarvis/mcp/tools.py
+- [x] T064 [P] [US2] Add complete type hints to all Scanner methods in jarvis-mcp/src/jarvis/capture/scanner.py
+- [x] T065 [US2] Add Pydantic validators for all input data in jarvis-mcp/src/jarvis/core/validators.py
+- [x] T066 [US2] Add Google-style docstrings with type examples for complex types
 
 ### Validation
 
-- [ ] T067 [US2] Run `npm run typecheck` and ensure zero errors
-- [ ] T068 [US2] Run `uv run mypy src/jarvis` and ensure zero errors
-- [ ] T069 [US2] Verify no `any` types in TypeScript source using grep
-- [ ] T070 [US2] Run linters and fix all warnings (eslint for TS, ruff for Python)
+- [x] T067 [US2] Run `npm run typecheck` and ensure zero errors
+- [x] T068 [US2] Run `uv run mypy src/jarvis` and ensure zero errors
+- [x] T069 [US2] Verify no `any` types in TypeScript source using grep
+- [x] T070 [US2] Run linters and fix all warnings (eslint for TS, ruff for Python)
 
 **Checkpoint**: Type checkers pass with zero errors, 100% type coverage for public APIs
 

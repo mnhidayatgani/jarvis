@@ -16,7 +16,6 @@ from jarvis.capture.validator import ValidationError, run_validation
 from jarvis.memory.core import initialize_databases
 from jarvis.memory.factual import FactualMemory
 from jarvis.memory.remember import add_decision
-from jarvis.memory.semantic import SemanticMemory
 from jarvis.memory.safety import (
     SafetyError,
     create_checkpoint,
@@ -24,6 +23,7 @@ from jarvis.memory.safety import (
     preview_checkpoint,
     rollback_to_checkpoint,
 )
+from jarvis.memory.semantic import SemanticMemory
 from jarvis.utils.config import Configuration
 from jarvis.utils.embeddings import EmbeddingsWrapper
 from jarvis.utils.persona import JarvisPersona
@@ -142,9 +142,7 @@ class MCPTools:
             return {
                 "success": False,
                 "error": str(e),
-                "message": self.persona.format_error(
-                    f"Failed to store memory: {str(e)}"
-                ),
+                "message": self.persona.format_error(f"Failed to store memory: {str(e)}"),
             }
 
     def recall_context(
@@ -241,9 +239,7 @@ class MCPTools:
             return {
                 "success": False,
                 "error": str(e),
-                "message": self.persona.format_error(
-                    f"Failed to recall memory: {str(e)}"
-                ),
+                "message": self.persona.format_error(f"Failed to recall memory: {str(e)}"),
             }
 
     def _generate_memory_id(self, content: str) -> str:
@@ -728,7 +724,7 @@ class MCPTools:
                 "success": False,
                 "error": str(e),
                 "message": self.persona.format_error(
-                    "Unable to retrieve memory status", str(e)
+                    f"Unable to retrieve memory status: {str(e)}"
                 ),
             }
 
@@ -768,7 +764,7 @@ class MCPTools:
                 "success": False,
                 "error": str(e),
                 "message": self.persona.format_error(
-                    "Health check failed", str(e)
+                    f"Health check failed: {str(e)}"
                 ),
             }
 
@@ -860,7 +856,7 @@ class MCPTools:
                 "success": False,
                 "error": str(e),
                 "message": self.persona.format_error(
-                    "Failed to capture commit", str(e)
+                    f"Failed to capture commit: {str(e)}"
                 ),
             }
 
@@ -904,7 +900,7 @@ class MCPTools:
             return {
                 "success": False,
                 "error": str(e),
-                "message": self.persona.format_error("Checkpoint creation failed", str(e)),
+                "message": self.persona.format_error(f"Checkpoint creation failed: {str(e)}"),
             }
 
     def list_checkpoints(self) -> dict[str, Any]:
@@ -933,7 +929,7 @@ class MCPTools:
             return {
                 "success": False,
                 "error": str(e),
-                "message": self.persona.format_error("Failed to list checkpoints", str(e)),
+                "message": self.persona.format_error(f"Failed to list checkpoints: {str(e)}"),
             }
 
     def preview_checkpoint(
@@ -966,7 +962,7 @@ class MCPTools:
             return {
                 "success": False,
                 "error": str(e),
-                "message": self.persona.format_error("Preview failed", str(e)),
+                "message": self.persona.format_error(f"Preview failed: {str(e)}"),
             }
 
     def rollback_to_checkpoint(
@@ -1006,7 +1002,7 @@ class MCPTools:
             return {
                 "success": False,
                 "error": str(e),
-                "message": self.persona.format_error("Rollback failed", str(e)),
+                "message": self.persona.format_error(f"Rollback failed: {str(e)}"),
             }
 
     def validate_changes(self) -> dict[str, Any]:
@@ -1026,8 +1022,7 @@ class MCPTools:
                 )
             else:
                 message = self.persona.format_error(
-                    f"Validation failed, Sir",
-                    f"{result['failed_checks']} of {result['total_checks']} checks failed.",
+                    f"Validation failed, Sir: {result['failed_checks']} of {result['total_checks']} checks failed."
                 )
 
             return {
@@ -1040,7 +1035,7 @@ class MCPTools:
             return {
                 "success": False,
                 "error": str(e),
-                "message": self.persona.format_error("Validation unavailable", str(e)),
+                "message": self.persona.format_error(f"Validation unavailable: {str(e)}"),
             }
 
 

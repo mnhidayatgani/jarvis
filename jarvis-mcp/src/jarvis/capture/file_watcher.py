@@ -19,7 +19,7 @@ except ImportError:
     FileSystemEvent = Any  # type: ignore[misc, assignment]
 
 
-class JarvisFileEventHandler(FileSystemEventHandler):  # type: ignore
+class JarvisFileEventHandler(FileSystemEventHandler):
     """Custom file event handler for JARVIS."""
 
     def __init__(

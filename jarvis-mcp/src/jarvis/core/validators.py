@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, field_validator
 
 
 class ProjectConfig(BaseModel):
@@ -21,6 +21,35 @@ class ProjectConfig(BaseModel):
     def validate_language(cls, v: str) -> str:
         if v != "en":
             raise ValueError("Only English ('en') is supported")
+        return v
+
+    @field_validator("response_style")
+    @classmethod
+    def validate_response_style(cls, v: str) -> str:
+        """Validate response_style value.
+
+        Args:
+            v: Proposed response style
+
+        Returns:
+            Validated value
+
+        Raises:
+            ValueError: If response style not supported
+        """
+        if v not in ("concise", "verbose"):
+            raise ValueError("response_style must be 'concise' or 'verbose'")
+        return v
+
+    @field_validator("persona")
+    @classmethod
+    def validate_persona(cls, v: str) -> str:
+        """Validate persona value.
+
+        Currently only 'jarvis' persona is supported.
+        """
+        if v != "jarvis":
+            raise ValueError("Only 'jarvis' persona is supported")
         return v
 
 

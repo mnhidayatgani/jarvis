@@ -1,6 +1,9 @@
 """Snapshot Memory (L3) - File-based code diff storage.
 
 Stores code snapshots and diffs for rollback and history tracking.
+
+Google-style docstrings and complete type hints are provided to
+support strict type checking and improve developer ergonomics.
 """
 
 import json
@@ -23,10 +26,10 @@ class SnapshotMemory(BaseMemory):
         """
         super().__init__(snapshots_dir)
         self.snapshots_dir = snapshots_dir
-        
+
         # Index file for quick lookup
         self.index_file = self.snapshots_dir / "index.json"
-        
+
         self._ensure_storage()
 
     def _ensure_storage(self) -> None:
@@ -47,7 +50,11 @@ class SnapshotMemory(BaseMemory):
         """
         try:
             with open(self.index_file, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                # Ensure mapping type for callers
+                if isinstance(data, dict):
+                    return data
+                return {}
         except (OSError, json.JSONDecodeError):
             return {}
 
@@ -131,7 +138,8 @@ class SnapshotMemory(BaseMemory):
 
         try:
             with open(snapshot_file, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                return data if isinstance(data, dict) else None
         except (OSError, json.JSONDecodeError) as e:
             print(f"Warning: Failed to load snapshot {snapshot_id}: {e}")
             return None
@@ -292,7 +300,7 @@ class SnapshotMemory(BaseMemory):
         return results
 
     # BaseMemory abstract method implementations
-    
+
     def _store_entry(
         self,
         entry_id: str,
@@ -300,18 +308,18 @@ class SnapshotMemory(BaseMemory):
         metadata: dict[str, Any],
     ) -> None:
         """Store entry as snapshot file.
-        
+
         Args:
             entry_id: Unique identifier for the entry.
             content: Snapshot content (e.g., diff).
             metadata: Associated metadata including file_paths, commit_sha.
         """
         timestamp = time.time()
-        
+
         # Extract file-specific metadata
         file_paths = metadata.get("file_paths", [])
         commit_sha = metadata.get("commit_sha")
-        
+
         # Prepare snapshot data
         snapshot_data = {
             "id": entry_id,
@@ -339,10 +347,10 @@ class SnapshotMemory(BaseMemory):
 
     def _retrieve_entry(self, entry_id: str) -> dict[str, Any] | None:
         """Retrieve entry from snapshot file.
-        
+
         Args:
             entry_id: Unique identifier.
-            
+
         Returns:
             Entry data if found, None otherwise.
         """
@@ -355,12 +363,12 @@ class SnapshotMemory(BaseMemory):
         filters: dict[str, Any] | None,
     ) -> list[dict[str, Any]]:
         """Search snapshot entries.
-        
+
         Args:
             query: Search query (searches diff content).
             limit: Maximum results to return.
             filters: Optional filters (file_path, commit_sha, timestamps).
-            
+
         Returns:
             List of matching snapshots.
         """
@@ -369,7 +377,7 @@ class SnapshotMemory(BaseMemory):
         to_timestamp = filters.get("to_timestamp") if filters else None
         file_path = filters.get("file_path") if filters else None
         commit_sha = filters.get("commit_sha") if filters else None
-        
+
         # List snapshots with filters
         snapshots = self.list_snapshots(
             from_timestamp=from_timestamp,
@@ -378,7 +386,7 @@ class SnapshotMemory(BaseMemory):
             commit_sha=commit_sha,
             limit=limit,
         )
-        
+
         # If query provided, filter by content
         if query:
             filtered = []
@@ -387,22 +395,22 @@ class SnapshotMemory(BaseMemory):
                 if snapshot_data and query.lower() in snapshot_data.get("diff_content", "").lower():
                     filtered.append(snapshot_data)
             return filtered[:limit]
-        
+
         # Load full snapshot data
         results = []
         for snapshot_meta in snapshots:
             snapshot_data = self.load_snapshot(snapshot_meta["id"])
             if snapshot_data:
                 results.append(snapshot_data)
-        
+
         return results[:limit]
 
     def _delete_entry(self, entry_id: str) -> bool:
         """Delete snapshot entry.
-        
+
         Args:
             entry_id: Unique identifier.
-            
+
         Returns:
             True if deleted, False if not found.
         """
@@ -410,10 +418,10 @@ class SnapshotMemory(BaseMemory):
 
     def _count_entries(self, filters: dict[str, Any] | None) -> int:
         """Count snapshot entries matching filters.
-        
+
         Args:
             filters: Optional filters to apply.
-            
+
         Returns:
             Number of matching entries.
         """
@@ -421,13 +429,13 @@ class SnapshotMemory(BaseMemory):
             # Return total count
             index = self._read_index()
             return len(index)
-        
+
         # Apply filters and count
         from_timestamp = filters.get("from_timestamp")
         to_timestamp = filters.get("to_timestamp")
         file_path = filters.get("file_path")
         commit_sha = filters.get("commit_sha")
-        
+
         snapshots = self.list_snapshots(
             from_timestamp=from_timestamp,
             to_timestamp=to_timestamp,
@@ -435,5 +443,5 @@ class SnapshotMemory(BaseMemory):
             commit_sha=commit_sha,
             limit=10000,  # High limit for counting
         )
-        
+
         return len(snapshots)

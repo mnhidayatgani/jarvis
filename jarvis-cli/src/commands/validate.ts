@@ -23,17 +23,23 @@ export async function handleValidate(options: ValidateOptions): Promise<void> {
     }
 
     const result = await mcpClient.callTool('validate_changes', {})
+    const data = result.data as { overall_passed: boolean; results: Array<{ tool: string; passed: boolean; duration_seconds: number; error?: string; output?: string }>; passed_checks: number; total_checks: number; duration_seconds: number } | undefined
 
     if (options.json) {
       console.log(JSON.stringify(result.data, null, 2))
-      if (!result.data.overall_passed) {
+      if (!data?.overall_passed) {
         process.exit(1)
       }
       return
     }
 
+    if (!data) {
+      console.log('\n❌ Invalid validation response\n')
+      return
+    }
+
     // Display results
-    if (result.data.overall_passed) {
+    if (data.overall_passed) {
       console.log(`✅ ${result.message}\n`)
     } else {
       console.log(`❌ ${result.message}\n`)
@@ -41,7 +47,7 @@ export async function handleValidate(options: ValidateOptions): Promise<void> {
 
     // Show individual check results
     console.log('Check Results:')
-    for (const check of result.data.results) {
+    for (const check of data.results) {
       const icon = check.passed ? '✅' : '❌'
       const duration = check.duration_seconds.toFixed(2)
       console.log(`  ${icon} ${check.tool} (${duration}s)`)
@@ -59,26 +65,27 @@ export async function handleValidate(options: ValidateOptions): Promise<void> {
     }
 
     console.log(
-      `\nTotal: ${result.data.passed_checks}/${result.data.total_checks} passed in ${result.data.duration_seconds.toFixed(1)}s\n`,
+      `\nTotal: ${data.passed_checks}/${data.total_checks} passed in ${data.duration_seconds.toFixed(1)}s\n`,
     )
 
-    if (!result.data.overall_passed) {
-      const failedChecks = result.data.results
-        .filter((check: any) => !check.passed)
-        .map((check: any) => check.tool)
+    if (!data.overall_passed) {
+      const failedChecks = data.results
+        .filter((check) => !check.passed)
+        .map((check) => check.tool)
         .join(', ')
       throw new ValidationError(
         `Validation checks failed: ${failedChecks}`,
         'validation',
-        result.data.results.filter((check: any) => !check.passed)
+        data.results.filter((check) => !check.passed)
       )
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (options.json) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.log(
         JSON.stringify({
           success: false,
-          error: error.message,
+          error: errorMessage,
         }),
       )
       process.exit(1)
@@ -88,17 +95,18 @@ export async function handleValidate(options: ValidateOptions): Promise<void> {
       throw error
     }
     // Re-throw as MCPConnectionError or InternalError based on error type
-    if (error.message?.includes('MCP') || error.message?.includes('connection')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('MCP') || errorMessage.includes('connection')) {
       throw new MCPConnectionError(
         'Failed to run validation checks',
         'unknown',
-        error
+        error instanceof Error ? error : undefined
       )
     }
     throw new InternalError(
-      `Validation failed: ${error.message}`,
+      `Validation failed: ${errorMessage}`,
       undefined,
-      error
+      error instanceof Error ? error : undefined
     )
   }
 }

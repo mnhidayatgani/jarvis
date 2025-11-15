@@ -12,6 +12,7 @@ import type {
   DatabaseStatus,
   ConfigStatus,
   ProjectInfo,
+  MemoryStats,
 } from "./base/types";
 import { getDefaultClient } from "../api/mcp-client";
 import { NotInitializedError } from "../core/errors";
@@ -59,7 +60,7 @@ export class StatusCommand extends BaseCommand<StatusOptions, StatusResult> {
       });
 
       if (memoryStats.success && memoryStats.data) {
-        result.memory = memoryStats.data as any;
+        result.memory = memoryStats.data as MemoryStats;
       }
     } catch (error) {
       // MCP server might not be running, continue with basic stats
@@ -110,6 +111,7 @@ export class StatusCommand extends BaseCommand<StatusOptions, StatusResult> {
 
     if (existsSync(contextPath)) {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const context = require(contextPath);
         return {
           name: context.name || context.project_name || null,

@@ -3,6 +3,8 @@
 Handles searching and retrieving memories from the storage systems.
 """
 
+from typing import Any
+
 from sqlalchemy import func, select
 
 from jarvis.memory.core import (
@@ -12,7 +14,7 @@ from jarvis.memory.core import (
 )
 
 
-def get_memory_status(project_path: str) -> dict:
+def get_memory_status(project_path: str) -> dict[str, Any]:
     """Get memory system statistics.
 
     Args:
@@ -22,7 +24,7 @@ def get_memory_status(project_path: str) -> dict:
         Dictionary with memory statistics including entry counts,
         disk usage, and last activity
     """
-    stats: dict = {
+    stats: dict[str, Any] = {
         "total_entries": 0,
         "decisions": 0,
         "notes": 0,
@@ -45,7 +47,7 @@ def get_memory_status(project_path: str) -> dict:
                 result = conn.execute(
                     select(func.count())
                     .select_from(semantic_memory)
-                    .where(semantic_memory.c.type == "decision")  # type: ignore[attr-defined]
+                    .where(semantic_memory.c.type == "decision")
                 )
                 stats["decisions"] = result.scalar() or 0
 
@@ -53,7 +55,7 @@ def get_memory_status(project_path: str) -> dict:
                 result = conn.execute(
                     select(func.count())
                     .select_from(semantic_memory)
-                    .where(semantic_memory.c.type == "note")  # type: ignore[attr-defined]
+                    .where(semantic_memory.c.type == "note")
                 )
                 stats["notes"] = result.scalar() or 0
             except Exception:
@@ -63,7 +65,7 @@ def get_memory_status(project_path: str) -> dict:
             # Get last activity
             try:
                 result = conn.execute(
-                    select(func.max(semantic_memory.c.timestamp)).select_from(  # type: ignore[attr-defined]
+                    select(func.max(semantic_memory.c.timestamp)).select_from(
                         semantic_memory
                     )
                 )
@@ -90,7 +92,7 @@ def get_memory_status(project_path: str) -> dict:
             collections = client.list_collections()  # type: ignore[attr-defined]
             for collection in collections:
                 col_data = client.get_collection(collection.name)  # type: ignore[attr-defined]
-                count = col_data.count()  # type: ignore[attr-defined]
+                count = col_data.count()
                 stats["collections"][collection.name] = count
         except Exception:
             # ChromaDB might not be initialized
@@ -103,14 +105,14 @@ def get_memory_status(project_path: str) -> dict:
     return stats
 
 
-def search_memories(
+def search_decisions(
     project_path: str,
     query: str,
     type_filter: str | None = None,
     file_filter: str | None = None,
     since: str | None = None,
     limit: int = 10,
-) -> list[dict]:
+) -> dict[str, Any]:
     """Search memories using semantic search.
 
     Args:
@@ -122,7 +124,7 @@ def search_memories(
         limit: Maximum number of results
 
     Returns:
-        List of matching memories with relevance scores
+        Dictionary with search results
     """
     results = []
 
@@ -143,21 +145,21 @@ def search_memories(
             pass
 
         # Perform semantic search
-        search_results = collection.query(  # type: ignore[attr-defined]
+        search_results = collection.query(
             query_texts=[query], n_results=limit, where=where if where else None
         )
 
         # Format results
-        if search_results and search_results["documents"]:  # type: ignore[index]
-            for i, doc in enumerate(search_results["documents"][0]):  # type: ignore[index]
+        if search_results and search_results["documents"]:
+            for i, doc in enumerate(search_results["documents"][0]):
                 metadata = (
-                    search_results["metadatas"][0][i]  # type: ignore[index]
-                    if search_results["metadatas"]  # type: ignore[index]
+                    search_results["metadatas"][0][i]
+                    if search_results["metadatas"]
                     else {}
                 )
                 distance = (
-                    search_results["distances"][0][i]  # type: ignore[index]
-                    if search_results["distances"]  # type: ignore[index]
+                    search_results["distances"][0][i]
+                    if search_results["distances"]
                     else 0.0
                 )
 
@@ -165,7 +167,7 @@ def search_memories(
                 relevance = 1.0 - min(distance, 1.0)
 
                 result = {
-                    "id": search_results["ids"][0][i],  # type: ignore[index]
+                    "id": search_results["ids"][0][i],
                     "content": doc,
                     "relevance_score": round(relevance, 3),
                     "type": metadata.get("type"),
@@ -181,7 +183,7 @@ def search_memories(
                 results.append(result)
 
     except Exception as e:
-        # Return empty results with error info
-        return [{"error": str(e)}]
+        # Return results with error info
+        return {"status": "error", "error": str(e), "results": []}
 
-    return results[:limit]
+    return {"status": "success", "results": results[:limit], "total": len(results)}

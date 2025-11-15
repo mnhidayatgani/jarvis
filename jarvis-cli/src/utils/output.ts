@@ -225,9 +225,11 @@ export class OutputFormatter implements IOutputFormatter {
 
   /**
    * Print JSON output
+   * 
+   * @param data - Data to serialize as JSON (must be JSON-serializable)
    */
-  printJson(data: any): void {
-    console.log(JSON.stringify(data, null, this.options.verbose ? 2 : 0))
+  printJson(data: unknown): void {
+    console.log(JSON.stringify(data, null, this.options.verbose ? 2 : 0));
   }
 
   /**
@@ -274,14 +276,17 @@ export class OutputFormatter implements IOutputFormatter {
 
 /**
  * Get output formatter from CLI flags
+ * 
+ * @param flags - CLI flags object with output options
+ * @returns Configured output formatter instance
  */
-export function getFormatter(flags: Record<string, any> = {}): IOutputFormatter {
+export function getFormatter(flags: Record<string, unknown> = {}): IOutputFormatter {
   return new OutputFormatter({
-    quiet: flags.quiet || false,
-    json: flags.json || false,
-    verbose: flags.verbose || false,
+    quiet: typeof flags.quiet === "boolean" ? flags.quiet : false,
+    json: typeof flags.json === "boolean" ? flags.json : false,
+    verbose: typeof flags.verbose === "boolean" ? flags.verbose : false,
     color: !flags.noColor && process.stdout.isTTY,
-  })
+  });
 }
 
 /**
