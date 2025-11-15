@@ -2,6 +2,8 @@
  * Unit tests for init command
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs'
 import { resolve } from 'path'

@@ -2,6 +2,8 @@
  * Unit tests for scan command
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 describe('Scan Command', () => {

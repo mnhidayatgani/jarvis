@@ -9,6 +9,7 @@
 ## Current Implementation Status
 
 ### ✅ Completed (62 tests passing)
+
 - Phase 1: Setup (10/10 tasks) ✓
 - Phase 2: Foundational (14/14 tasks) ✓
 - Phase 3: User Story 1 - Initialize (9/9 tasks) ✓
@@ -36,11 +37,13 @@
 - [ ] T204 [US2] Add integration test for remember→recall workflow
 
 **Files to Create/Modify**:
+
 - `jarvis-cli/src/commands/recall.ts` (enhance existing)
 - `jarvis-cli/tests/unit/recall.test.ts` (new)
 - `jarvis-cli/tests/integration/memory.integration.test.ts` (new)
 
 **Acceptance Criteria**:
+
 - ✓ `jarvis recall "query"` returns ranked results
 - ✓ Results show relevance scores and snippets
 - ✓ `--verbose` shows full content
@@ -67,6 +70,7 @@
 - [ ] T308 [US7] Add unit tests for doctor command
 
 **Files to Create**:
+
 - `jarvis-cli/src/commands/status.ts`
 - `jarvis-cli/src/commands/doctor.ts`
 - `jarvis-mcp/src/jarvis/utils/doctor.py`
@@ -74,6 +78,7 @@
 - `jarvis-cli/tests/unit/doctor.test.ts`
 
 **Acceptance Criteria**:
+
 - ✓ `jarvis status` shows memory stats (entry count, disk usage, last activity)
 - ✓ `jarvis doctor` checks database health, MCP server status, dependencies
 - ✓ Both commands use JARVIS persona
@@ -91,7 +96,7 @@
 
 - [ ] T401 [US4] Update init.ts to install post-commit git hook
 - [ ] T402 [US4] Create internal.ts with handleInternalOnCommit
-- [ ] T403 [US4] Add _internal_on_commit routing to index.ts
+- [ ] T403 [US4] Add \_internal_on_commit routing to index.ts
 - [ ] T404 [US4] Implement add_commit_event in jarvis-mcp/src/jarvis/memory/remember.py
 - [ ] T405 [US4] Create on_commit MCP tool in server.py
 - [ ] T406 [US4] Save diffs to .jarvis/snapshots/{hash}.diff
@@ -99,6 +104,7 @@
 - [ ] T408 [US4] Add integration test for commit capture
 
 **Files to Create/Modify**:
+
 - `jarvis-cli/src/commands/init.ts` (modify - add hook installer)
 - `jarvis-cli/src/commands/internal.ts` (new)
 - `jarvis-cli/src/index.ts` (modify - add internal routing)
@@ -106,6 +112,7 @@
 - `jarvis-cli/tests/unit/internal.test.ts` (new)
 
 **Acceptance Criteria**:
+
 - ✓ `jarvis init` installs post-commit hook
 - ✓ Git commits trigger automatic capture
 - ✓ Diffs stored in .jarvis/snapshots/
@@ -134,6 +141,7 @@
 - [ ] T510 [US7] Add integration test for checkpoint→rollback workflow
 
 **Files to Create**:
+
 - `jarvis-mcp/src/jarvis/memory/safety.py`
 - `jarvis-cli/src/commands/checkpoint.ts`
 - `jarvis-cli/src/commands/rollback.ts`
@@ -142,6 +150,7 @@
 - `jarvis-cli/tests/integration/safety.integration.test.ts`
 
 **Acceptance Criteria**:
+
 - ✓ `jarvis checkpoint "reason"` creates git stash checkpoint
 - ✓ `jarvis rollback` or `jarvis rollback <id>` restores state
 - ✓ Checkpoint metadata stored and retrievable
@@ -168,10 +177,12 @@
 - [ ] T608 [US7] Add integration test for auto-rollback
 
 **Files to Create**:
+
 - `jarvis-mcp/src/jarvis/capture/validator.py`
 - `jarvis-cli/tests/unit/validator.test.ts` (if needed)
 
 **Acceptance Criteria**:
+
 - ✓ Validates Python projects (ruff, mypy, pytest)
 - ✓ Validates TypeScript projects (eslint, tsc, vitest)
 - ✓ Returns clear pass/fail with error details
@@ -198,6 +209,7 @@
 ## Implementation Priority Order
 
 ### Sprint 1: Complete MVP (P1 Stories)
+
 1. **Week 1**: Recall command (T201-T204) - 4 tasks
 2. **Week 2**: Status/Doctor commands (T301-T308) - 8 tasks
 3. **Week 3**: Auto-capture (T401-T408) - 8 tasks
@@ -206,12 +218,14 @@
 **Total MVP**: 30 tasks, 4 weeks
 
 ### Sprint 2: Extended Features
+
 1. **Week 5**: Validation system (T601-T608) - 8 tasks
 2. **Week 6**: Extended features (T701-T708) - 8 tasks
 
 **Total Extended**: 16 tasks, 2 weeks
 
 ### Sprint 3: Polish & Documentation
+
 1. Final testing and bug fixes
 2. Performance optimization
 3. Documentation completion
@@ -264,6 +278,7 @@ jarvis checkpoint "before refactor"
 ## Success Metrics
 
 ### MVP Complete When:
+
 - ✅ All P1 tasks complete (T201-T510)
 - ✅ Test coverage >80%
 - ✅ All commands work end-to-end
@@ -271,6 +286,7 @@ jarvis checkpoint "before refactor"
 - ✅ Performance targets met (<2s recall, <5s scan)
 
 ### Production Ready When:
+
 - ✅ All tasks complete
 - ✅ Test coverage >90%
 - ✅ Security audit passed
