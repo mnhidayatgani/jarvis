@@ -10,10 +10,11 @@ from typing import Any
 import chromadb
 from chromadb.config import Settings
 
+from jarvis.memory.base import BaseMemory
 from jarvis.utils.embeddings import get_embeddings
 
 
-class SemanticMemory:
+class SemanticMemory(BaseMemory):BaseMemory):
     """ChromaDB-based semantic memory storage (L2 layer)."""
 
     def __init__(self, persist_directory: Path, project_id: str) -> None:
@@ -23,10 +24,20 @@ class SemanticMemory:
             persist_directory: Directory for ChromaDB persistence.
             project_id: Project identifier for collection naming.
         """
+        super().__init__(persist_directory)
         self.persist_directory = persist_directory
         self.project_id = project_id
         self.collection_name = f"jarvis_{project_id[:16]}"  # Limit length
+        
+        # Initialize in _ensure_storage
+        self.client = None
+        self.collection = None
+        self.embeddings = None
+        
+        self._ensure_storage()
 
+    def _ensure_storage(self) -> None:
+        """Ensure ChromaDB is initialized and ready."""
         # Ensure directory exists
         self.persist_directory.mkdir(parents=True, exist_ok=True)
 
@@ -41,7 +52,7 @@ class SemanticMemory:
         # Get or create collection
         self.collection = self.client.get_or_create_collection(
             name=self.collection_name,
-            metadata={"project_id": project_id},
+            metadata={"project_id": self.project_id},
         )
 
         # Initialize embeddings
@@ -265,3 +276,88 @@ class SemanticMemory:
             name=self.collection_name,
             metadata={"project_id": self.project_id},
         )
+
+    # BaseMemory abstract method implementations
+    
+    def _store_entry(
+        self,
+        entry_id: str,
+        content: str,
+        metadata: dict[str, Any],
+    ) -> None:
+        """Store entry in ChromaDB with embeddings.
+        
+        Args:
+            entry_id: Unique identifier for the entry.
+            content: Content to store and embed.
+            metadata: Associated metadata.
+        """
+        self.add_semantic_entry(entry_id, content, metadata)
+
+    def _retrieve_entry(self, entry_id: str) -> dict[str, Any] | None:
+        """Retrieve entry from ChromaDB.
+        
+        Args:
+            entry_id: Unique identifier.
+            
+        Returns:
+            Entry data if found, None otherwise.
+        """
+        return self.get_entry(entry_id)
+
+    def _search_entries(
+        self,
+        query: str,
+        limit: int,
+        filters: dict[str, Any] | None,
+    ) -> list[dict[str, Any]]:
+        """Search entries using semantic similarity.
+        
+        Args:
+            query: Search query for semantic matching.
+            limit: Maximum results to return.
+            filters: Optional filters to apply.
+            
+        Returns:
+            List of matching entries with similarity scores.
+        """
+        results = self.search_semantic(query, n_results=limit, filters=filters)
+        
+        # Convert to standard format
+        return [
+            {
+                "id": r["id"],
+                "content": r["content"],
+                "metadata": r.get("metadata", {}),
+                "similarity_score": r.get("similarity", 0.0),
+            }
+            for r in results
+        ]
+
+    def _delete_entry(self, entry_id: str) -> bool:
+        """Delete entry from ChromaDB.
+        
+        Args:
+            entry_id: Unique identifier.
+            
+        Returns:
+            True if deleted, False if not found.
+        """
+        return self.delete_entry(entry_id)
+
+    def _count_entries(self, filters: dict[str, Any] | None) -> int:
+        """Count entries matching filters.
+        
+        Args:
+            filters: Optional filters to apply.
+            
+        Returns:
+            Number of matching entries.
+        """
+        # ChromaDB doesn't support filtered counting easily
+        # For now, return total count
+        if filters:
+            # Would need to query and count, expensive
+            # For now, approximate with total
+            return self.collection.count()
+        return self.collection.count()

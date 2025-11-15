@@ -10,8 +10,10 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from jarvis.memory.base import BaseMemory
 
-class FactualMemory:
+
+class FactualMemory(BaseMemory):
     """SQLite-based factual memory storage (L1 layer)."""
 
     def __init__(self, db_path: Path) -> None:
@@ -20,10 +22,11 @@ class FactualMemory:
         Args:
             db_path: Path to SQLite database file.
         """
+        super().__init__(db_path)
         self.db_path = db_path
-        self._ensure_database()
+        self._ensure_storage()
 
-    def _ensure_database(self) -> None:
+    def _ensure_storage(self) -> None:
         """Ensure database exists and schema is initialized."""
         # Create directory if it doesn't exist
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -349,5 +352,163 @@ class FactualMemory:
                 "by_type": by_type,
                 "recent_entries_7d": recent,
             }
+        finally:
+            conn.close()
+
+    # BaseMemory abstract method implementations
+    
+    def _store_entry(
+        self,
+        entry_id: str,
+        content: str,
+        metadata: dict[str, Any],
+    ) -> None:
+        """Store entry in SQLite database.
+        
+        Args:
+            entry_id: Unique identifier for the entry.
+            content: Content to store.
+            metadata: Associated metadata.
+        """
+        timestamp = time.time()
+        
+        # Extract fields from metadata
+        project_id = metadata.get("project_id", "default")
+        content_type = metadata.get("type", "note")
+        file_path = metadata.get("file_path")
+        tags = metadata.get("tags", [])
+        
+        # Serialize JSON fields
+        metadata_json = json.dumps({
+            k: v for k, v in metadata.items()
+            if k not in {"project_id", "type", "file_path", "tags", "created_at", "updated_at"}
+        })
+        tags_json = json.dumps(tags) if tags else None
+
+        conn = self._get_connection()
+        try:
+            conn.execute(
+                """
+                INSERT INTO memory_entries
+                (id, project_id, content, content_type, file_path, line_start, line_end,
+                 commit_sha, timestamp, metadata, tags)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    entry_id,
+                    project_id,
+                    content,
+                    content_type,
+                    file_path,
+                    None,  # line_start
+                    None,  # line_end
+                    None,  # commit_sha
+                    timestamp,
+                    metadata_json,
+                    tags_json,
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def _retrieve_entry(self, entry_id: str) -> dict[str, Any] | None:
+        """Retrieve entry from SQLite database.
+        
+        Args:
+            entry_id: Unique identifier.
+            
+        Returns:
+            Entry data if found, None otherwise.
+        """
+        return self.get_entry(entry_id)
+
+    def _search_entries(
+        self,
+        query: str,
+        limit: int,
+        filters: dict[str, Any] | None,
+    ) -> list[dict[str, Any]]:
+        """Search entries in SQLite database.
+        
+        Args:
+            query: Search query (searches content field).
+            limit: Maximum results to return.
+            filters: Optional filters to apply.
+            
+        Returns:
+            List of matching entries.
+        """
+        # Build SQL query with LIKE search
+        sql_query = "SELECT * FROM memory_entries WHERE content LIKE ?"
+        params: list[Any] = [f"%{query}%"]
+
+        # Apply filters
+        if filters:
+            if filters.get("type"):
+                sql_query += " AND content_type = ?"
+                params.append(filters["type"])
+            
+            if filters.get("file_path"):
+                sql_query += " AND file_path = ?"
+                params.append(filters["file_path"])
+            
+            if filters.get("project_id"):
+                sql_query += " AND project_id = ?"
+                params.append(filters["project_id"])
+
+        # Order by timestamp descending
+        sql_query += " ORDER BY timestamp DESC LIMIT ?"
+        params.append(limit)
+
+        conn = self._get_connection()
+        try:
+            cursor = conn.execute(sql_query, params)
+            rows = cursor.fetchall()
+            return [self._row_to_dict(row) for row in rows]
+        finally:
+            conn.close()
+
+    def _delete_entry(self, entry_id: str) -> bool:
+        """Delete entry from SQLite database.
+        
+        Args:
+            entry_id: Unique identifier.
+            
+        Returns:
+            True if deleted, False if not found.
+        """
+        return self.delete_entry(entry_id)
+
+    def _count_entries(self, filters: dict[str, Any] | None) -> int:
+        """Count entries matching filters.
+        
+        Args:
+            filters: Optional filters to apply.
+            
+        Returns:
+            Number of matching entries.
+        """
+        query = "SELECT COUNT(*) as total FROM memory_entries WHERE 1=1"
+        params: list[Any] = []
+
+        if filters:
+            if filters.get("type"):
+                query += " AND content_type = ?"
+                params.append(filters["type"])
+            
+            if filters.get("file_path"):
+                query += " AND file_path = ?"
+                params.append(filters["file_path"])
+            
+            if filters.get("project_id"):
+                query += " AND project_id = ?"
+                params.append(filters["project_id"])
+
+        conn = self._get_connection()
+        try:
+            cursor = conn.execute(query, params)
+            result = cursor.fetchone()
+            return result["total"] if result else 0
         finally:
             conn.close()

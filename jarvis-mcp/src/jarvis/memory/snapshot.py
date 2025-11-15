@@ -9,8 +9,10 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from jarvis.memory.base import BaseMemory
 
-class SnapshotMemory:
+
+class SnapshotMemory(BaseMemory):
     """File-based snapshot memory storage (L3 layer)."""
 
     def __init__(self, snapshots_dir: Path) -> None:
@@ -19,11 +21,17 @@ class SnapshotMemory:
         Args:
             snapshots_dir: Directory for storing snapshot files.
         """
+        super().__init__(snapshots_dir)
         self.snapshots_dir = snapshots_dir
-        self.snapshots_dir.mkdir(parents=True, exist_ok=True)
-
+        
         # Index file for quick lookup
         self.index_file = self.snapshots_dir / "index.json"
+        
+        self._ensure_storage()
+
+    def _ensure_storage(self) -> None:
+        """Ensure snapshot directory and index exist."""
+        self.snapshots_dir.mkdir(parents=True, exist_ok=True)
         self._ensure_index()
 
     def _ensure_index(self) -> None:
@@ -282,3 +290,150 @@ class SnapshotMemory:
         results.sort(key=lambda x: x["timestamp"], reverse=True)
 
         return results
+
+    # BaseMemory abstract method implementations
+    
+    def _store_entry(
+        self,
+        entry_id: str,
+        content: str,
+        metadata: dict[str, Any],
+    ) -> None:
+        """Store entry as snapshot file.
+        
+        Args:
+            entry_id: Unique identifier for the entry.
+            content: Snapshot content (e.g., diff).
+            metadata: Associated metadata including file_paths, commit_sha.
+        """
+        timestamp = time.time()
+        
+        # Extract file-specific metadata
+        file_paths = metadata.get("file_paths", [])
+        commit_sha = metadata.get("commit_sha")
+        
+        # Prepare snapshot data
+        snapshot_data = {
+            "id": entry_id,
+            "timestamp": timestamp,
+            "diff_content": content,
+            "file_paths": file_paths,
+            "commit_sha": commit_sha,
+            "metadata": metadata,
+        }
+
+        # Save snapshot file
+        snapshot_file = self.snapshots_dir / f"{entry_id}.json"
+        with open(snapshot_file, "w", encoding="utf-8") as f:
+            json.dump(snapshot_data, f, indent=2, ensure_ascii=False)
+
+        # Update index
+        index = self._read_index()
+        index[entry_id] = {
+            "timestamp": timestamp,
+            "file_paths": file_paths,
+            "commit_sha": commit_sha,
+            "file": f"{entry_id}.json",
+        }
+        self._write_index(index)
+
+    def _retrieve_entry(self, entry_id: str) -> dict[str, Any] | None:
+        """Retrieve entry from snapshot file.
+        
+        Args:
+            entry_id: Unique identifier.
+            
+        Returns:
+            Entry data if found, None otherwise.
+        """
+        return self.load_snapshot(entry_id)
+
+    def _search_entries(
+        self,
+        query: str,
+        limit: int,
+        filters: dict[str, Any] | None,
+    ) -> list[dict[str, Any]]:
+        """Search snapshot entries.
+        
+        Args:
+            query: Search query (searches diff content).
+            limit: Maximum results to return.
+            filters: Optional filters (file_path, commit_sha, timestamps).
+            
+        Returns:
+            List of matching snapshots.
+        """
+        # Extract filter parameters
+        from_timestamp = filters.get("from_timestamp") if filters else None
+        to_timestamp = filters.get("to_timestamp") if filters else None
+        file_path = filters.get("file_path") if filters else None
+        commit_sha = filters.get("commit_sha") if filters else None
+        
+        # List snapshots with filters
+        snapshots = self.list_snapshots(
+            from_timestamp=from_timestamp,
+            to_timestamp=to_timestamp,
+            file_path=file_path,
+            commit_sha=commit_sha,
+            limit=limit,
+        )
+        
+        # If query provided, filter by content
+        if query:
+            filtered = []
+            for snapshot_meta in snapshots:
+                snapshot_data = self.load_snapshot(snapshot_meta["id"])
+                if snapshot_data and query.lower() in snapshot_data.get("diff_content", "").lower():
+                    filtered.append(snapshot_data)
+            return filtered[:limit]
+        
+        # Load full snapshot data
+        results = []
+        for snapshot_meta in snapshots:
+            snapshot_data = self.load_snapshot(snapshot_meta["id"])
+            if snapshot_data:
+                results.append(snapshot_data)
+        
+        return results[:limit]
+
+    def _delete_entry(self, entry_id: str) -> bool:
+        """Delete snapshot entry.
+        
+        Args:
+            entry_id: Unique identifier.
+            
+        Returns:
+            True if deleted, False if not found.
+        """
+        return self.delete_snapshot(entry_id)
+
+    def _count_entries(self, filters: dict[str, Any] | None) -> int:
+        """Count snapshot entries matching filters.
+        
+        Args:
+            filters: Optional filters to apply.
+            
+        Returns:
+            Number of matching entries.
+        """
+        if not filters:
+            # Return total count
+            index = self._read_index()
+            return len(index)
+        
+        # Apply filters and count
+        from_timestamp = filters.get("from_timestamp")
+        to_timestamp = filters.get("to_timestamp")
+        file_path = filters.get("file_path")
+        commit_sha = filters.get("commit_sha")
+        
+        snapshots = self.list_snapshots(
+            from_timestamp=from_timestamp,
+            to_timestamp=to_timestamp,
+            file_path=file_path,
+            commit_sha=commit_sha,
+            limit=10000,  # High limit for counting
+        )
+        
+        return len(snapshots)

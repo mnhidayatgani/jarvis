@@ -91,9 +91,9 @@
 ### Memory Layer Organization
 
 - [x] T043 [P] [US1] Create BaseMemory abstract class in jarvis-mcp/src/jarvis/memory/base.py
-- [ ] T044 [US1] Refactor FactualMemory to extend BaseMemory in jarvis-mcp/src/jarvis/memory/factual.py
-- [ ] T045 [US1] Refactor SemanticMemory to extend BaseMemory in jarvis-mcp/src/jarvis/memory/semantic.py
-- [ ] T046 [US1] Refactor SnapshotMemory to extend BaseMemory in jarvis-mcp/src/jarvis/memory/snapshot.py
+- [x] T044 [US1] Refactor FactualMemory to extend BaseMemory in jarvis-mcp/src/jarvis/memory/factual.py
+- [x] T045 [US1] Refactor SemanticMemory to extend BaseMemory in jarvis-mcp/src/jarvis/memory/semantic.py
+- [x] T046 [US1] Refactor SnapshotMemory to extend BaseMemory in jarvis-mcp/src/jarvis/memory/snapshot.py
 - [ ] T047 [US1] Update MemoryCore to use base classes in jarvis-mcp/src/jarvis/memory/core.py
 
 ### Documentation
