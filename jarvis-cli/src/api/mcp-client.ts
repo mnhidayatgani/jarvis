@@ -12,6 +12,7 @@ export interface MCPToolCall {
 export interface MCPResponse {
   success: boolean
   data?: any
+  report?: string
   error?: string
   message?: string
 }

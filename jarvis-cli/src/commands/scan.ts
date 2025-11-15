@@ -41,78 +41,88 @@ export async function handleScanCommand(
 
     const analysis = result.data
 
-    // Display summary
-    output.success('Codebase analysis complete')
-    console.log()
-
-    // Tech stack
-    if (analysis?.tech_stack && analysis.tech_stack.length > 0) {
-      console.log('📚 Tech Stack:')
-      output.list(analysis.tech_stack)
+    // If we have a formatted report from scanner, display it
+    if (result.report && !options.json) {
+      console.log(result.report)
+      console.log()
+    } else {
+      // Fallback to structured display
+      // Display summary
+      output.success('Codebase analysis complete')
       console.log()
     }
 
-    // Dependencies
-    if (analysis?.dependencies) {
-      const depCount = Object.keys(analysis.dependencies).length
-      if (depCount > 0) {
-        console.log(`📦 Dependencies: ${depCount} detected`)
-        if (options.verbose) {
-          for (const [manager, deps] of Object.entries(analysis.dependencies)) {
-            console.log(`   ${manager}:`)
-            const depList = Array.isArray(deps) ? deps : Object.keys(deps as object)
-            depList.slice(0, 10).forEach((dep: string) => {
-              console.log(`     - ${dep}`)
-            })
-            if (depList.length > 10) {
-              console.log(`     ... and ${depList.length - 10} more`)
+    // In verbose mode or if no report, show detailed breakdown
+    if (options.verbose || !result.report) {
+      // Tech stack
+      if (analysis?.tech_stack && analysis.tech_stack.length > 0) {
+        console.log('📚 Tech Stack:')
+        output.list(analysis.tech_stack)
+        console.log()
+      }
+
+      // Dependencies
+      if (analysis?.dependencies) {
+        const depCount = Object.keys(analysis.dependencies).length
+        if (depCount > 0) {
+          console.log(`📦 Dependencies: ${depCount} detected`)
+          if (options.verbose) {
+            for (const [manager, deps] of Object.entries(analysis.dependencies)) {
+              console.log(`   ${manager}:`)
+              const depList = Array.isArray(deps) ? deps : Object.keys(deps as object)
+              depList.slice(0, 10).forEach((dep: string) => {
+                console.log(`     - ${dep}`)
+              })
+              if (depList.length > 10) {
+                console.log(`     ... and ${depList.length - 10} more`)
+              }
             }
           }
+          console.log()
+        }
+      }
+
+      // File structure
+      if (analysis?.file_count !== undefined) {
+        console.log(`📁 Files: ${analysis.file_count} analyzed`)
+        if (analysis.directory_count) {
+          console.log(`📂 Directories: ${analysis.directory_count}`)
         }
         console.log()
       }
-    }
 
-    // File structure
-    if (analysis?.file_count !== undefined) {
-      console.log(`📁 Files: ${analysis.file_count} analyzed`)
-      if (analysis.directory_count) {
-        console.log(`📂 Directories: ${analysis.directory_count}`)
+      // Inconsistencies
+      if (analysis?.inconsistencies && analysis.inconsistencies.length > 0) {
+        console.log('⚠️  Inconsistencies Detected:')
+        analysis.inconsistencies.forEach((issue: any) => {
+          console.log(`   • ${issue.type}: ${issue.description}`)
+          if (options.verbose && issue.examples) {
+            issue.examples.forEach((ex: string) => console.log(`     - ${ex}`))
+          }
+        })
+        console.log()
       }
-      console.log()
-    }
 
-    // Inconsistencies
-    if (analysis?.inconsistencies && analysis.inconsistencies.length > 0) {
-      console.log('⚠️  Inconsistencies Detected:')
-      analysis.inconsistencies.forEach((issue: any) => {
-        console.log(`   • ${issue.type}: ${issue.description}`)
-        if (options.verbose && issue.examples) {
-          issue.examples.forEach((ex: string) => console.log(`     - ${ex}`))
+      // Questions
+      if (analysis?.questions && analysis.questions.length > 0) {
+        console.log('❓ Clarifying Questions:')
+        analysis.questions.forEach((q: string, i: number) => {
+          console.log(`   ${i + 1}. ${q}`)
+        })
+        console.log()
+
+        // Interactive mode
+        if (options.interactive) {
+          output.info('Run with --interactive to answer questions', false)
         }
-      })
-      console.log()
-    }
-
-    // Questions
-    if (analysis?.questions && analysis.questions.length > 0) {
-      console.log('❓ Clarifying Questions:')
-      analysis.questions.forEach((q: string, i: number) => {
-        console.log(`   ${i + 1}. ${q}`)
-      })
-      console.log()
-
-      // Interactive mode
-      if (options.interactive) {
-        output.info('Run with --interactive to answer questions', false)
       }
-    }
 
-    // Suggestions
-    if (options.verbose && analysis?.suggestions) {
-      console.log('💡 Suggestions:')
-      output.list(analysis.suggestions)
-      console.log()
+      // Suggestions
+      if (options.verbose && analysis?.suggestions) {
+        console.log('💡 Suggestions:')
+        output.list(analysis.suggestions)
+        console.log()
+      }
     }
 
     output.info('Project context stored in JARVIS memory', false)
