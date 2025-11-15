@@ -81,12 +81,12 @@
 - [x] T034 [US1] Refactor StatusCommand to extend BaseCommand in jarvis-cli/src/commands/status.ts
 - [x] T035 [P] [US1] Write characterization tests for ConfigCommand in jarvis-cli/tests/unit/commands/config.test.ts
 - [x] T036 [US1] Refactor ConfigCommand to extend BaseCommand in jarvis-cli/src/commands/config.ts
-- [ ] T037 [P] [US1] Write characterization tests for ScanCommand in jarvis-cli/tests/unit/commands/scan.test.ts
-- [ ] T038 [US1] Refactor ScanCommand to extend BaseCommand in jarvis-cli/src/commands/scan.ts
-- [ ] T039 [P] [US1] Write characterization tests for RememberCommand in jarvis-cli/tests/unit/commands/remember.test.ts
-- [ ] T040 [US1] Refactor RememberCommand to extend BaseCommand in jarvis-cli/src/commands/remember.ts
-- [ ] T041 [P] [US1] Write characterization tests for RecallCommand in jarvis-cli/tests/unit/commands/recall.test.ts
-- [ ] T042 [US1] Refactor RecallCommand to extend BaseCommand in jarvis-cli/src/commands/recall.ts
+- [x] T037 [P] [US1] Write characterization tests for ScanCommand in jarvis-cli/tests/unit/commands/scan.test.ts
+- [x] T038 [US1] Refactor ScanCommand to extend BaseCommand in jarvis-cli/src/commands/scan.ts
+- [x] T039 [P] [US1] Write characterization tests for RememberCommand in jarvis-cli/tests/unit/commands/remember.test.ts
+- [x] T040 [US1] Refactor RememberCommand to extend BaseCommand in jarvis-cli/src/commands/remember.ts
+- [x] T041 [P] [US1] Write characterization tests for RecallCommand in jarvis-cli/tests/unit/commands/recall.test.ts
+- [x] T042 [US1] Refactor RecallCommand to extend BaseCommand in jarvis-cli/src/commands/recall.ts
 
 ### Memory Layer Organization
 

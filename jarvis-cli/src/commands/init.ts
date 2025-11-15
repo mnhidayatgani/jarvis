@@ -1,157 +1,239 @@
 /**
  * Init Command - Initialize JARVIS memory system in a project
+ * Refactored to use Command Pattern
  */
 
-import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs'
-import { resolve, basename } from 'path'
-import { execSync } from 'child_process'
-import { createHash } from 'crypto'
-import { getFormatter } from '../utils/output'
-import { DEFAULT_CONFIG } from '../config/config'
+import { existsSync, mkdirSync, writeFileSync, readFileSync } from "fs";
+import { resolve, basename } from "path";
+import { execSync } from "child_process";
+import { createHash } from "crypto";
+import { BaseCommand } from "./base/command";
+import type { InitOptions, InitResult } from "./base/types";
+import { DEFAULT_CONFIG } from "../config/config";
+import {
+  FileSystemError,
+  ConfigurationError,
+  InternalError,
+} from "../core/errors";
 
-interface InitOptions {
-  force?: boolean
-  verbose?: boolean
-  quiet?: boolean
-}
+export class InitCommand extends BaseCommand<InitOptions, InitResult> {
+  parse(args: string[]): InitOptions {
+    const options: InitOptions = {};
 
-export async function handleInitCommand(options: InitOptions = {}): Promise<void> {
-  const output = getFormatter(options)
-
-  try {
-    // Detect project root
-    const projectRoot = detectProjectRoot()
-    output.progress('Initializing JARVIS memory system...')
-
-    // Check if .jarvis already exists
-    const jarvisDir = resolve(projectRoot, '.jarvis')
-    if (existsSync(jarvisDir)) {
-      if (!options.force) {
-        output.warning('.jarvis directory already exists')
-        output.info(
-          'Use --force to reinitialize (this will preserve existing data)',
-          false,
-        )
-        process.exit(1)
+    for (const arg of args) {
+      if (arg === "--force" || arg === "-f") {
+        options.force = true;
+      } else if (arg === "--verbose" || arg === "-v") {
+        options.verbose = true;
+      } else if (arg === "--quiet" || arg === "-q") {
+        options.quiet = true;
       }
-      output.info('Reinitializing existing .jarvis directory', false)
     }
 
-    // Check if git repository exists
-    const isGitRepo = checkGitRepository(projectRoot)
-    if (!isGitRepo) {
-      output.warning(
-        'Not a git repository - auto-capture features will be limited',
-      )
-      output.info(
-        'Run "git init" to enable full auto-capture capabilities',
-        false,
-      )
-    }
-
-    // Create .jarvis directory structure
-    createDirectoryStructure(jarvisDir)
-    output.progress('Created directory structure')
-
-    // Create config.json
-    createConfigFile(jarvisDir)
-    output.progress('Created configuration file')
-
-    // Get project metadata
-    const projectName = basename(projectRoot)
-    const projectId = generateProjectId(projectRoot)
-
-    // Initialize databases (will be done via MCP server in full implementation)
-    // For now, we create the basic structure
-    initializeDatabases(jarvisDir, projectId)
-    output.progress('Initialized databases')
-
-    // Create ProjectContext
-    createProjectContext(jarvisDir, projectId, projectName, projectRoot)
-    output.progress('Created project context')
-
-    // Install git hooks if in a git repository
-    if (isGitRepo) {
-      installGitHooks(projectRoot, options)
-      output.progress('Installed git hooks for auto-capture')
-    }
-
-    // Success message
-    output.success('JARVIS memory system initialized')
-
-    if (options.verbose) {
-      output.info('Project details:', false)
-      output.list([
-        `Name: ${projectName}`,
-        `Root: ${projectRoot}`,
-        `ID: ${projectId.substring(0, 16)}...`,
-        `Git: ${isGitRepo ? 'Yes' : 'No'}`,
-      ])
-    }
-
-    output.info('Run "jarvis status" to view memory system status', false)
-  } catch (error) {
-    output.error(
-      'Failed to initialize JARVIS',
-      error instanceof Error ? error : undefined,
-    )
-    process.exit(1)
+    return options;
   }
-}
 
-/**
- * Detect project root directory
- */
-function detectProjectRoot(): string {
-  // Start from current directory
-  const currentDir = process.cwd()
+  validate(options: InitOptions): void {
+    const projectRoot = this.detectProjectRoot();
+    const jarvisDir = resolve(projectRoot, ".jarvis");
 
-  // Look for common project indicators
-  const indicators = [
-    'package.json',
-    'pyproject.toml',
-    'Cargo.toml',
-    'go.mod',
-    'pom.xml',
-    'build.gradle',
-    '.git',
-  ]
-
-  // Check current directory
-  for (const indicator of indicators) {
-    if (existsSync(resolve(currentDir, indicator))) {
-      return currentDir
+    // Check if already initialized without --force
+    if (existsSync(jarvisDir) && !options.force) {
+      throw new ConfigurationError(
+        ".jarvis directory already exists. Use --force to reinitialize",
+        "initialized",
+        true
+      );
     }
   }
 
-  // If no indicators found, use current directory
-  return currentDir
-}
+  async execute(options: InitOptions): Promise<InitResult> {
+    try {
+      const projectRoot = this.detectProjectRoot();
+      const jarvisDir = resolve(projectRoot, ".jarvis");
+      const projectName = basename(projectRoot);
+      const projectId = this.generateProjectId(projectRoot);
+      const isGitRepo = this.checkGitRepository(projectRoot);
 
-/**
- * Check if current directory is a git repository
- */
-function checkGitRepository(projectRoot: string): boolean {
-  try {
-    execSync('git rev-parse --git-dir', {
-      cwd: projectRoot,
-      stdio: 'ignore',
-    })
-    return true
-  } catch {
-    return false
+      // Create directory structure
+      this.createDirectoryStructure(jarvisDir);
+
+      // Create config file
+      this.createConfigFile(jarvisDir);
+
+      // Initialize databases
+      this.initializeDatabases(jarvisDir, projectId);
+
+      // Create project context
+      this.createProjectContext(jarvisDir, projectId, projectName, projectRoot);
+
+      // Install git hooks if in git repo
+      let hooksInstalled = false;
+      if (isGitRepo) {
+        hooksInstalled = this.installGitHooks(projectRoot, options);
+      }
+
+      return {
+        success: true,
+        projectRoot,
+        projectName,
+        projectId,
+        isGitRepo,
+        hooksInstalled,
+      };
+    } catch (error) {
+      if (
+        error instanceof FileSystemError ||
+        error instanceof ConfigurationError
+      ) {
+        throw error;
+      }
+      throw new InternalError(
+        "Failed to initialize JARVIS",
+        {},
+        error instanceof Error ? error : undefined
+      );
+    }
   }
-}
 
-/**
- * Install git hooks for auto-capture
- */
-function installGitHooks(projectRoot: string, options: InitOptions): void {
-  const gitHooksDir = resolve(projectRoot, '.git', 'hooks')
-  const postCommitHook = resolve(gitHooksDir, 'post-commit')
+  private detectProjectRoot(): string {
+    const currentDir = process.cwd();
+    const indicators = [
+      "package.json",
+      "pyproject.toml",
+      "Cargo.toml",
+      "go.mod",
+      "pom.xml",
+      "build.gradle",
+      ".git",
+    ];
 
-  // Hook script template
-  const hookScript = `#!/bin/bash
+    for (const indicator of indicators) {
+      if (existsSync(resolve(currentDir, indicator))) {
+        return currentDir;
+      }
+    }
+
+    return currentDir;
+  }
+
+  private checkGitRepository(projectRoot: string): boolean {
+    try {
+      execSync("git rev-parse --git-dir", {
+        cwd: projectRoot,
+        stdio: "ignore",
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private createDirectoryStructure(jarvisDir: string): void {
+    try {
+      if (!existsSync(jarvisDir)) {
+        mkdirSync(jarvisDir, { recursive: true });
+      }
+
+      const subdirs = ["db", "snapshots"];
+      for (const subdir of subdirs) {
+        const path = resolve(jarvisDir, subdir);
+        if (!existsSync(path)) {
+          mkdirSync(path, { recursive: true });
+        }
+      }
+    } catch (error) {
+      throw new FileSystemError(
+        "Failed to create directory structure",
+        jarvisDir,
+        "create",
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private createConfigFile(jarvisDir: string): void {
+    const configPath = resolve(jarvisDir, "config.json");
+
+    try {
+      if (!existsSync(configPath)) {
+        const config = {
+          ...DEFAULT_CONFIG,
+          initialized_at: new Date().toISOString(),
+        };
+        writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+      }
+    } catch (error) {
+      throw new FileSystemError(
+        "Failed to create config file",
+        configPath,
+        "write",
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private generateProjectId(projectRoot: string): string {
+    const absolutePath = resolve(projectRoot);
+    return createHash("sha256").update(absolutePath).digest("hex");
+  }
+
+  private initializeDatabases(jarvisDir: string, _projectId: string): void {
+    const chromaPath = resolve(jarvisDir, "db", "chroma");
+
+    try {
+      if (!existsSync(chromaPath)) {
+        mkdirSync(chromaPath, { recursive: true });
+      }
+    } catch (error) {
+      throw new FileSystemError(
+        "Failed to initialize databases",
+        chromaPath,
+        "create",
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private createProjectContext(
+    jarvisDir: string,
+    projectId: string,
+    projectName: string,
+    projectRoot: string
+  ): void {
+    const contextPath = resolve(jarvisDir, "project_context.json");
+
+    try {
+      const context = {
+        id: projectId,
+        name: projectName,
+        root_path: projectRoot,
+        tech_stack: [],
+        dependencies: {},
+        file_structure_map: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      writeFileSync(contextPath, JSON.stringify(context, null, 2), "utf-8");
+    } catch (error) {
+      throw new FileSystemError(
+        "Failed to create project context",
+        contextPath,
+        "write",
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private installGitHooks(
+    projectRoot: string,
+    options: InitOptions
+  ): boolean {
+    const gitHooksDir = resolve(projectRoot, ".git", "hooks");
+    const postCommitHook = resolve(gitHooksDir, "post-commit");
+
+    const hookScript = `#!/bin/bash
 # JARVIS Post-Commit Hook
 # Captures commit information and triggers JARVIS memory storage
 
@@ -169,131 +251,80 @@ cd "$PROJECT_ROOT"
 jarvis _internal_on_commit > /dev/null 2>&1 &
 
 exit 0
-`
+`;
+
+    try {
+      // Check if hook already exists
+      if (existsSync(postCommitHook) && !options.force) {
+        const existingContent = readFileSync(postCommitHook, "utf-8");
+        if (existingContent.includes("JARVIS")) {
+          return true; // Already installed
+        }
+        return false; // Existing non-JARVIS hook
+      }
+
+      writeFileSync(postCommitHook, hookScript, { mode: 0o755 });
+      return true;
+    } catch (error) {
+      // Non-fatal - return false but don't throw
+      if (options.verbose) {
+        console.warn("Could not install git hooks:", error);
+      }
+      return false;
+    }
+  }
+}
+
+// Legacy export for backward compatibility
+export async function handleInitCommand(
+  options: InitOptions = {}
+): Promise<void> {
+  const command = new InitCommand();
 
   try {
-    // Check if hook already exists
-    if (existsSync(postCommitHook) && !options.force) {
-      const existingContent = readFileSync(postCommitHook, 'utf-8')
-      if (existingContent.includes('JARVIS')) {
-        // Hook already installed
-        return
-      }
-      // Existing non-JARVIS hook - skip installation
-      if (options.verbose) {
-        console.log('Warning: Existing post-commit hook found. Use --force to overwrite.')
-      }
-      return
+    if (!options.quiet) {
+      console.log("⏳ Initializing JARVIS memory system...");
     }
 
-    // Write hook script
-    writeFileSync(postCommitHook, hookScript, { mode: 0o755 })
+    const result = await command.run([
+      ...(options.force ? ["--force"] : []),
+      ...(options.verbose ? ["--verbose"] : []),
+      ...(options.quiet ? ["--quiet"] : []),
+    ]);
+
+    displayInitResult(result, options);
   } catch (error) {
-    // Non-fatal error - hook installation failed but init can continue
-    if (options.verbose) {
-      console.log('Warning: Could not install git hooks:', error)
-    }
+    console.error(
+      `Error: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+    process.exit(1);
   }
 }
 
-/**
- * Create .jarvis directory structure
- */
-function createDirectoryStructure(jarvisDir: string): void {
-  // Create main directory
-  if (!existsSync(jarvisDir)) {
-    mkdirSync(jarvisDir, { recursive: true })
+function displayInitResult(result: InitResult, options: InitOptions): void {
+  console.log("✓ JARVIS memory system initialized, Sir.");
+
+  if (!result.isGitRepo) {
+    console.log("⚠️  Not a git repository - auto-capture features will be limited");
+    console.log('   Run "git init" to enable full auto-capture capabilities');
   }
 
-  // Create subdirectories
-  const subdirs = ['db', 'snapshots']
-  for (const subdir of subdirs) {
-    const path = resolve(jarvisDir, subdir)
-    if (!existsSync(path)) {
-      mkdirSync(path, { recursive: true })
-    }
+  if (options.verbose) {
+    console.log("\nProject details:");
+    console.log(`  • Name: ${result.projectName}`);
+    console.log(`  • Root: ${result.projectRoot}`);
+    console.log(`  • ID: ${result.projectId.substring(0, 16)}...`);
+    console.log(`  • Git: ${result.isGitRepo ? "Yes" : "No"}`);
+    console.log(`  • Hooks: ${result.hooksInstalled ? "Installed" : "Not installed"}`);
   }
-}
 
-/**
- * Create config.json file
- */
-function createConfigFile(jarvisDir: string): void {
-  const configPath = resolve(jarvisDir, 'config.json')
-
-  // Only create if doesn't exist (preserve existing config)
-  if (!existsSync(configPath)) {
-    const config = {
-      ...DEFAULT_CONFIG,
-      initialized_at: new Date().toISOString(),
-    }
-
-    writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
+  if (!options.quiet) {
+    console.log('\nℹ️  Run "jarvis status" to view memory system status');
   }
 }
 
-/**
- * Generate project ID from path
- */
-function generateProjectId(projectRoot: string): string {
-  const absolutePath = resolve(projectRoot)
-  return createHash('sha256').update(absolutePath).digest('hex')
-}
-
-/**
- * Initialize databases
- */
-function initializeDatabases(jarvisDir: string, _projectId: string): void {
-  // Create placeholder for ChromaDB
-  const chromaPath = resolve(jarvisDir, 'db', 'chroma')
-  if (!existsSync(chromaPath)) {
-    mkdirSync(chromaPath, { recursive: true })
-  }
-
-  // Note: Actual database initialization will be done via MCP server
-  // For now, we just create the directory structure
-}
-
-/**
- * Create initial ProjectContext
- */
-function createProjectContext(
-  jarvisDir: string,
-  projectId: string,
-  projectName: string,
-  projectRoot: string,
-): void {
-  const contextPath = resolve(jarvisDir, 'project_context.json')
-
-  const context = {
-    id: projectId,
-    name: projectName,
-    root_path: projectRoot,
-    tech_stack: [],
-    dependencies: {},
-    file_structure_map: {},
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-
-  writeFileSync(contextPath, JSON.stringify(context, null, 2), 'utf-8')
-}
-
-/**
- * Parse command line arguments for init command
- */
+// Keep legacy parseInitArgs for tests
 export function parseInitArgs(args: string[]): InitOptions {
-  const options: InitOptions = {}
-
-  for (const arg of args) {
-    if (arg === '--force' || arg === '-f') {
-      options.force = true
-    } else if (arg === '--verbose' || arg === '-v') {
-      options.verbose = true
-    } else if (arg === '--quiet' || arg === '-q') {
-      options.quiet = true
-    }
-  }
-
-  return options
+  const command = new InitCommand();
+  return command.parse(args);
 }

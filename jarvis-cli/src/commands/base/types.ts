@@ -141,3 +141,42 @@ export interface RecallResult {
   memory?: MemoryItem; // For single memory retrieval
   error?: string;
 }
+
+// Init Command Types
+export interface InitOptions {
+  force?: boolean;
+  verbose?: boolean;
+  quiet?: boolean;
+}
+
+export interface InitResult {
+  success: boolean;
+  projectRoot: string;
+  projectName: string;
+  projectId: string;
+  isGitRepo: boolean;
+  hooksInstalled: boolean;
+}
+
+// Doctor Command Types
+export interface DoctorOptions {
+  verbose?: boolean;
+  json?: boolean;
+  quiet?: boolean;
+}
+
+export interface HealthCheckItem {
+  name: string;
+  status: "pass" | "fail" | "warn";
+  message: string;
+  details?: unknown;
+}
+
+export interface DoctorResult {
+  success: boolean;
+  overall: "healthy" | "degraded" | "critical";
+  passed: number;
+  failed: number;
+  warnings: number;
+  checks: HealthCheckItem[];
+}
