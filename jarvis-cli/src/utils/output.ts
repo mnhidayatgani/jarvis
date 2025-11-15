@@ -11,7 +11,72 @@ export interface OutputOptions {
   color?: boolean
 }
 
-export class OutputFormatter {
+/**
+ * Interface for output formatting.
+ * Defines contract for formatting CLI output with JARVIS persona.
+ */
+export interface IOutputFormatter {
+  /**
+   * Print success message with JARVIS persona
+   * @param message - Success message to display
+   * @param detail - Optional additional detail
+   */
+  success(message: string, detail?: string): void
+
+  /**
+   * Print error message with JARVIS persona
+   * @param message - Error message to display
+   * @param error - Optional error object for verbose output
+   */
+  error(message: string, error?: Error): void
+
+  /**
+   * Print warning message with JARVIS persona
+   * @param message - Warning message to display
+   */
+  warning(message: string): void
+
+  /**
+   * Print informational message
+   * @param message - Info message to display
+   * @param addressSir - Whether to append "Sir" to message
+   */
+  info(message: string, addressSir?: boolean): void
+
+  /**
+   * Print progress indicator message
+   * @param message - Progress message to display
+   */
+  progress(message: string): void
+
+  /**
+   * Print list of items
+   * @param items - Array of items to display
+   * @param prefix - Optional prefix before the list
+   */
+  list(items: string[], prefix?: string): void
+
+  /**
+   * Print data in table format
+   * @param headers - Column headers
+   * @param rows - Table rows (array of arrays)
+   */
+  table(headers: string[], rows: string[][]): void
+
+  /**
+   * Print JSON formatted output
+   * @param data - Data to serialize as JSON
+   */
+  printJson(data: unknown): void
+
+  /**
+   * Print raw data without formatting
+   * @param data - Raw string data to print
+   */
+  raw(data: string): void
+}
+
+export class OutputFormatter implements IOutputFormatter {
   private options: OutputOptions
 
   constructor(options: OutputOptions = {}) {
@@ -210,7 +275,7 @@ export class OutputFormatter {
 /**
  * Get output formatter from CLI flags
  */
-export function getFormatter(flags: Record<string, any> = {}): OutputFormatter {
+export function getFormatter(flags: Record<string, any> = {}): IOutputFormatter {
   return new OutputFormatter({
     quiet: flags.quiet || false,
     json: flags.json || false,

@@ -45,7 +45,7 @@
 - [x] T014 [P] Create ICommand<TOptions, TResult> interface in jarvis-cli/src/commands/base/command.ts
 - [x] T015 [P] Create BaseCommand abstract class implementing ICommand in jarvis-cli/src/commands/base/command.ts
 - [x] T016 [P] Create IMCPClient interface in jarvis-cli/src/api/types.ts with MCPResponse and MCPToolCall types
-- [ ] T017 [P] Create IOutputFormatter interface in jarvis-cli/src/utils/output.ts
+- [x] T017 [P] Create IOutputFormatter interface in jarvis-cli/src/utils/output.ts
 - [x] T018 [P] Create IMemoryLayer protocol in jarvis-mcp/src/jarvis/memory/interfaces.py
 - [x] T019 [P] Create IStorageBackend and IEmbeddingsProvider protocols in jarvis-mcp/src/jarvis/memory/interfaces.py
 - [x] T020 [P] Create MemoryEntry Pydantic model in jarvis-mcp/src/jarvis/core/types.py
