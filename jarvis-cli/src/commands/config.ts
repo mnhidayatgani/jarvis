@@ -94,7 +94,7 @@ export class ConfigCommand extends BaseCommand<ConfigOptions, ConfigResult> {
       const config = loadConfig();
       return {
         success: true,
-        all: config,
+        all: config as unknown as Record<string, unknown>,
       };
     }
 
@@ -103,7 +103,7 @@ export class ConfigCommand extends BaseCommand<ConfigOptions, ConfigResult> {
       saveConfig(DEFAULT_CONFIG);
       return {
         success: true,
-        all: DEFAULT_CONFIG,
+        all: DEFAULT_CONFIG as unknown as Record<string, unknown>,
       };
     }
 
@@ -143,7 +143,7 @@ export class ConfigCommand extends BaseCommand<ConfigOptions, ConfigResult> {
 export default function handleConfigCommand(args: string[]): void {
   try {
     const command = new ConfigCommand();
-    const result = command.run(args).then((result) => {
+    command.run(args).then((result) => {
       displayConfigResult(result);
     });
   } catch (error) {

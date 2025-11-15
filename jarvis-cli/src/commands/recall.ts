@@ -101,8 +101,11 @@ export class RecallCommand extends BaseCommand<RecallOptions, RecallResult> {
       });
 
       if (!response.success) {
+        const errorMsg = typeof response.error === 'string' 
+          ? response.error 
+          : (response.error as any)?.message || "Failed to search memory";
         throw new MCPConnectionError(
-          response.error?.message || "Failed to search memory",
+          errorMsg,
           "mcp://recall_context"
         );
       }
@@ -135,8 +138,11 @@ export class RecallCommand extends BaseCommand<RecallOptions, RecallResult> {
       });
 
       if (!response.success) {
+        const errorMsg = typeof response.error === 'string'
+          ? response.error
+          : (response.error as any)?.message || `Memory ${id} not found`;
         throw new MCPConnectionError(
-          response.error?.message || `Memory ${id} not found`,
+          errorMsg,
           "mcp://get_memory_by_id"
         );
       }

@@ -112,8 +112,11 @@ export class RememberCommand extends BaseCommand<
       });
 
       if (!response.success) {
+        const errorMsg = typeof response.error === 'string'
+          ? response.error
+          : (response.error as any)?.message || "Failed to store memory";
         throw new MCPConnectionError(
-          response.error?.message || "Failed to store memory",
+          errorMsg,
           "mcp://remember_context"
         );
       }

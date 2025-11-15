@@ -31,7 +31,7 @@ export class StatusCommand extends BaseCommand<StatusOptions, StatusResult> {
     return options;
   }
 
-  validate(options: StatusOptions): void {
+  validate(_options: StatusOptions): void {
     const jarvisDir = resolve(process.cwd(), ".jarvis");
 
     if (!existsSync(jarvisDir)) {

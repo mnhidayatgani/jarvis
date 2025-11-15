@@ -58,7 +58,7 @@
 - [x] T024 [P] Create mock MCP responses in jarvis-cli/tests/fixtures/responses.ts
 - [x] T025 [P] Create test helper functions in jarvis-cli/tests/helpers/mocks.ts
 - [x] T026 [P] Create pytest fixtures in jarvis-mcp/tests/conftest.py for temp projects and mock storage
-- [ ] T027 Run TypeScript type checker and fix all type errors in existing code
+- [x] T027 Run TypeScript type checker and fix all type errors in existing code
 - [x] T028 Run mypy on Python code and add type hints to all public APIs
 
 **Checkpoint**: Foundation ready - strict typing enabled, errors defined, interfaces created, tests can run ✅

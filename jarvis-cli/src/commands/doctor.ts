@@ -8,7 +8,7 @@ import { resolve } from "path";
 import { BaseCommand } from "./base/command";
 import type { DoctorOptions, DoctorResult, HealthCheckItem } from "./base/types";
 import { getDefaultClient } from "../api/mcp-client";
-import { NotInitializedError, InternalError } from "../core/errors";
+import { NotInitializedError } from "../core/errors";
 
 export class DoctorCommand extends BaseCommand<DoctorOptions, DoctorResult> {
   parse(args: string[]): DoctorOptions {
@@ -27,7 +27,7 @@ export class DoctorCommand extends BaseCommand<DoctorOptions, DoctorResult> {
     return options;
   }
 
-  validate(options: DoctorOptions): void {
+  validate(_options: DoctorOptions): void {
     const jarvisDir = resolve(process.cwd(), ".jarvis");
 
     if (!existsSync(jarvisDir)) {

@@ -27,7 +27,7 @@ export class ScanCommand extends BaseCommand<ScanOptions, ScanResult> {
     return options;
   }
 
-  validate(options: ScanOptions): void {
+  validate(_options: ScanOptions): void {
     // Scan command doesn't require validation
     // All options are optional flags
   }
@@ -44,8 +44,11 @@ export class ScanCommand extends BaseCommand<ScanOptions, ScanResult> {
       });
 
       if (!response.success) {
+        const errorMsg = typeof response.error === 'string'
+          ? response.error
+          : (response.error as any)?.message || "Analysis failed";
         throw new MCPConnectionError(
-          response.error?.message || "Analysis failed",
+          errorMsg,
           "mcp://analyze_codebase"
         );
       }

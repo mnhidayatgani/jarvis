@@ -18,12 +18,31 @@ export interface MCPResponse {
 }
 
 export class MCPClient {
-  private serverUrl: string
-  private timeout: number
+  private readonly serverUrl: string;
+  private readonly timeout: number;
 
-  constructor(serverUrl: string = 'http://localhost:3000', timeout: number = 30000) {
-    this.serverUrl = serverUrl
-    this.timeout = timeout
+  constructor(
+    serverUrl: string = 'http://localhost:3000',
+    timeout: number = 30000
+  ) {
+    this.serverUrl = serverUrl;
+    this.timeout = timeout;
+  }
+
+  /**
+   * Get the configured server URL
+   * @internal Reserved for future HTTP client implementation
+   */
+  getServerUrl(): string {
+    return this.serverUrl;
+  }
+
+  /**
+   * Get the configured timeout
+   * @internal Reserved for future HTTP client implementation
+   */
+  getTimeout(): number {
+    return this.timeout;
   }
 
   /**

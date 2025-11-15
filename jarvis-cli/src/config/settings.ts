@@ -7,11 +7,10 @@
 import {
   loadConfig,
   saveConfig,
-  getConfigValue,
   setConfigValue,
   DEFAULT_CONFIG,
   type UserConfig,
-} from '../config/config'
+} from './config'
 
 export interface Settings extends UserConfig {
   // Add CLI-specific settings here

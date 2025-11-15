@@ -2,7 +2,6 @@
  * Scan Command - Analyze existing codebase
  */
 
-import { resolve } from 'path'
 import { getDefaultClient } from '../api/mcp-client'
 import { getFormatter } from '../utils/output'
 
