@@ -1,8 +1,9 @@
 """Memory storage logic for remember command.
 
-Handles adding decisions and context to the memory system.
+Handles adding decisions, context, and commit events to the memory system.
 """
 
+import json
 from datetime import datetime
 
 from sqlalchemy import insert
@@ -51,3 +52,100 @@ def add_decision(project_path: str, content: str) -> dict:
     )
 
     return {"status": "success", "id": new_id, "timestamp": timestamp}
+
+
+def add_commit_event(
+    project_path: str,
+    commit_sha: str,
+    commit_message: str,
+    author: str,
+    date: str,
+    files_changed: list[str],
+    diff_path: str,
+) -> dict:
+    """Add a git commit event to memory.
+
+    Stores commit metadata in both SQLite and ChromaDB for semantic search.
+    The actual diff is stored separately in .jarvis/snapshots/
+
+    Args:
+        project_path: Path to project root
+        commit_sha: Full commit SHA hash
+        commit_message: Commit message
+        author: Commit author name
+        date: Commit date in ISO format
+        files_changed: List of file paths changed in commit
+        diff_path: Path to saved diff file
+
+    Returns:
+        Dictionary with status and entry ID
+    """
+    timestamp = datetime.now().isoformat()
+
+    # Create searchable content from commit metadata
+    # This allows semantic search for commits by message content
+    content = f"""Commit: {commit_message}
+
+Author: {author}
+Date: {date}
+SHA: {commit_sha}
+Files: {', '.join(files_changed[:10])}{"..." if len(files_changed) > 10 else ""}
+"""
+
+    # Metadata for the commit event
+    metadata = {
+        "type": "commit",
+        "commit_sha": commit_sha,
+        "author": author,
+        "date": date,
+        "files_count": len(files_changed),
+        "files_changed": json.dumps(files_changed),
+        "diff_path": diff_path,
+        "timestamp": timestamp,
+    }
+
+    # Store in SQLite
+    engine = get_sqlite_engine(project_path)
+    with engine.connect() as conn:
+        result = conn.execute(
+            insert(semantic_memory).values(
+                content=content,
+                timestamp=timestamp,
+            )
+        )
+        conn.commit()
+        new_id = result.lastrowid
+
+    # Store in ChromaDB for semantic search
+    client = get_chroma_client(project_path)
+    collection = client.get_or_create_collection("decisions")  # type: ignore[attr-defined]
+
+    # Add to collection with commit metadata
+    collection.add(
+        documents=[content],
+        metadatas=[metadata],
+        ids=[f"commit_{commit_sha[:8]}_{new_id}"],
+    )
+
+    # Check if commit message suggests a decision
+    decision_keywords = [
+        "because",
+        "chose",
+        "decided",
+        "decision",
+        "selected",
+        "opted",
+        "picked",
+        "prefer",
+    ]
+
+    has_decision = any(keyword in commit_message.lower() for keyword in decision_keywords)
+
+    return {
+        "status": "success",
+        "id": new_id,
+        "commit_sha": commit_sha,
+        "timestamp": timestamp,
+        "has_decision": has_decision,
+        "files_count": len(files_changed),
+    }

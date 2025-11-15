@@ -7,6 +7,11 @@ import { handleRecallCommand, parseRecallArgs } from './commands/recall'
 import { handleScanCommand, parseScanArgs } from './commands/scan'
 import { handleStatusCommand, parseStatusArgs } from './commands/status'
 import { handleDoctorCommand, parseDoctorArgs } from './commands/doctor'
+import { handleInternalOnCommit } from './commands/internal'
+import { handleCheckpoint } from './commands/checkpoint'
+import { handleRollback } from './commands/rollback'
+import { handleValidate } from './commands/validate'
+import { handleCleanup } from './commands/cleanup'
 
 /**
  * JARVIS CLI Entry Point
@@ -56,9 +61,66 @@ async function main() {
       handleConfigCommand(args.slice(1))
       break
 
+    case '_internal_on_commit':
+      // Internal command called by git hooks (not for user use)
+      await handleInternalOnCommit()
+      break
+
+    case 'checkpoint':
+      {
+        const reason = args.slice(1).find((arg) => !arg.startsWith('-'))
+        const options = {
+          list: args.includes('--list') || args.includes('-l'),
+          preview: args.find((arg) => arg.startsWith('--preview='))?.split('=')[1],
+          validate: args.includes('--validate') || args.includes('-v'),
+          json: args.includes('--json'),
+        }
+        await handleCheckpoint(reason || null, options)
+      }
+      break
+
+    case 'rollback':
+      {
+        const checkpointId = args.slice(1).find((arg) => !arg.startsWith('-'))
+        const options = {
+          keep: args.includes('--keep') || args.includes('-k'),
+          json: args.includes('--json'),
+        }
+        await handleRollback(checkpointId || null, options)
+      }
+      break
+
+    case 'validate':
+      {
+        const options = {
+          json: args.includes('--json'),
+          verbose: args.includes('--verbose') || args.includes('-v'),
+        }
+        await handleValidate(options)
+      }
+      break
+
+    case 'cleanup':
+      {
+        const target = args.slice(1).find((arg) => !arg.startsWith('-'))
+        const options = {
+          json: args.includes('--json'),
+          dryRun: args.includes('--dry-run'),
+          olderThan: parseInt(
+            args.find((arg) => arg.startsWith('--older-than='))?.split('=')[1] ||
+              '7',
+          ),
+          force: args.includes('--force') || args.includes('-f'),
+        }
+        await handleCleanup(target || null, options)
+      }
+      break
+
     default:
       console.error(`Error: Unknown command "${command}"`)
-      console.log('Available commands: init, remember, recall, scan, status, doctor, config')
+      console.log(
+        'Available commands: init, remember, recall, scan, status, doctor, config, checkpoint, rollback, validate, cleanup',
+      )
       process.exit(1)
   }
 }

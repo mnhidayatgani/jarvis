@@ -1,0 +1,46 @@
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Temporary files
+*.tmp
+.cache/
+.temp/
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# Test artifacts
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.vitest/
+
+# Build artifacts (handled by subproject .gitignores)
+dist/
+build/
+out/
+*.pyc
+__pycache__/
+node_modules/
+
+# Project-specific
+.jarvis/
+specs/**/checklists/*.draft.md

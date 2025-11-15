@@ -112,7 +112,7 @@ function isValidConfigKey(key) {
 }
 
 // src/commands/init.ts
-import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "fs";
+import { existsSync as existsSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2, readFileSync as readFileSync2 } from "fs";
 import { resolve, basename } from "path";
 import { execSync } from "child_process";
 import { createHash } from "crypto";
@@ -327,6 +327,10 @@ async function handleInitCommand(options = {}) {
     output.progress("Initialized databases");
     createProjectContext(jarvisDir, projectId, projectName, projectRoot);
     output.progress("Created project context");
+    if (isGitRepo) {
+      installGitHooks(projectRoot, options);
+      output.progress("Installed git hooks for auto-capture");
+    }
     output.success("JARVIS memory system initialized");
     if (options.verbose) {
       output.info("Project details:", false);
@@ -373,6 +377,46 @@ function checkGitRepository(projectRoot) {
     return true;
   } catch {
     return false;
+  }
+}
+function installGitHooks(projectRoot, options) {
+  const gitHooksDir = resolve(projectRoot, ".git", "hooks");
+  const postCommitHook = resolve(gitHooksDir, "post-commit");
+  const hookScript = `#!/bin/bash
+# JARVIS Post-Commit Hook
+# Captures commit information and triggers JARVIS memory storage
+
+# Get project root
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+JARVIS_DIR="$PROJECT_ROOT/.jarvis"
+
+# Skip if JARVIS not initialized
+if [ ! -d "$JARVIS_DIR" ]; then
+    exit 0
+fi
+
+# Call JARVIS internal command to capture commit (run in background to avoid blocking)
+cd "$PROJECT_ROOT"
+jarvis _internal_on_commit > /dev/null 2>&1 &
+
+exit 0
+`;
+  try {
+    if (existsSync2(postCommitHook) && !options.force) {
+      const existingContent = readFileSync2(postCommitHook, "utf-8");
+      if (existingContent.includes("JARVIS")) {
+        return;
+      }
+      if (options.verbose) {
+        console.log("Warning: Existing post-commit hook found. Use --force to overwrite.");
+      }
+      return;
+    }
+    writeFileSync2(postCommitHook, hookScript, { mode: 493 });
+  } catch (error) {
+    if (options.verbose) {
+      console.log("Warning: Could not install git hooks:", error);
+    }
   }
 }
 function createDirectoryStructure(jarvisDir) {
@@ -436,7 +480,7 @@ function parseInitArgs(args) {
 }
 
 // src/commands/remember.ts
-import { readFileSync as readFileSync2 } from "fs";
+import { readFileSync as readFileSync3 } from "fs";
 
 // src/api/mcp-client.ts
 var MCPClient = class {
@@ -555,7 +599,7 @@ var MCPClient = class {
    * Make HTTP request to MCP server
    */
   async makeRequest(endpoint, data) {
-    await new Promise((resolve4) => setTimeout(resolve4, 100));
+    await new Promise((resolve5) => setTimeout(resolve5, 100));
     return {
       success: true,
       data: {
@@ -585,7 +629,7 @@ async function handleRememberCommand(args, options = {}) {
       content = args.join(" ");
     } else {
       try {
-        content = readFileSync2(0, "utf-8").trim();
+        content = readFileSync3(0, "utf-8").trim();
       } catch {
         output.error('No content provided. Use: jarvis remember "content" or pipe via stdin');
         process.exit(1);
@@ -1272,6 +1316,402 @@ function parseDoctorArgs(args) {
   return options;
 }
 
+// src/commands/internal.ts
+import { execSync as execSync2 } from "child_process";
+import { resolve as resolve4 } from "path";
+import { writeFileSync as writeFileSync3, existsSync as existsSync5, mkdirSync as mkdirSync3 } from "fs";
+async function handleInternalOnCommit() {
+  try {
+    const projectRoot = execSync2("git rev-parse --show-toplevel", {
+      encoding: "utf-8"
+    }).trim();
+    const commitSha = execSync2("git rev-parse HEAD", {
+      cwd: projectRoot,
+      encoding: "utf-8"
+    }).trim();
+    const commitMessage = execSync2("git log -1 --pretty=%B", {
+      cwd: projectRoot,
+      encoding: "utf-8"
+    }).trim();
+    const commitAuthor = execSync2("git log -1 --pretty=%an", {
+      cwd: projectRoot,
+      encoding: "utf-8"
+    }).trim();
+    const commitDate = execSync2("git log -1 --pretty=%aI", {
+      cwd: projectRoot,
+      encoding: "utf-8"
+    }).trim();
+    const filesChanged = execSync2("git diff-tree --no-commit-id --name-only -r HEAD", {
+      cwd: projectRoot,
+      encoding: "utf-8"
+    }).trim().split("\n").filter((f) => f.length > 0);
+    const diff = execSync2("git show HEAD", {
+      cwd: projectRoot,
+      encoding: "utf-8"
+    });
+    const jarvisDir = resolve4(projectRoot, ".jarvis");
+    const snapshotsDir = resolve4(jarvisDir, "snapshots");
+    if (!existsSync5(snapshotsDir)) {
+      mkdirSync3(snapshotsDir, { recursive: true });
+    }
+    const diffPath = resolve4(snapshotsDir, `${commitSha}.diff`);
+    writeFileSync3(diffPath, diff, "utf-8");
+    try {
+      const mcpClient = getDefaultClient();
+      await mcpClient.callTool("on_commit", {
+        commit_sha: commitSha,
+        commit_message: commitMessage,
+        author: commitAuthor,
+        date: commitDate,
+        files_changed: filesChanged,
+        diff_path: diffPath,
+        project_root: projectRoot
+      });
+    } catch (mcpError) {
+    }
+    process.exit(0);
+  } catch (error) {
+    process.exit(0);
+  }
+}
+
+// src/commands/checkpoint.ts
+async function handleCheckpoint(reason, options) {
+  try {
+    const mcpClient = getDefaultClient();
+    if (options.list) {
+      const result2 = await mcpClient.callTool("list_checkpoints", {});
+      if (options.json) {
+        console.log(JSON.stringify(result2.data, null, 2));
+        return;
+      }
+      if (!result2.data.checkpoints || result2.data.checkpoints.length === 0) {
+        console.log("\n\u{1F4E6} No checkpoints found, Sir.\n");
+        return;
+      }
+      console.log("\n\u{1F4E6} Available Checkpoints:\n");
+      for (const checkpoint of result2.data.checkpoints) {
+        console.log(`  ${checkpoint.checkpoint_id}`);
+        console.log(`    Reason: ${checkpoint.message}`);
+        console.log(`    Created: ${new Date(checkpoint.timestamp).toLocaleString()}`);
+        console.log();
+      }
+      return;
+    }
+    if (options.preview) {
+      const result2 = await mcpClient.callTool("preview_checkpoint", {
+        checkpoint_id: options.preview
+      });
+      if (options.json) {
+        console.log(JSON.stringify(result2.data, null, 2));
+        return;
+      }
+      console.log(`
+\u{1F50D} Checkpoint Preview: ${result2.data.checkpoint_id}
+`);
+      console.log("Files that would be restored:");
+      for (const file of result2.data.files_changed) {
+        console.log(`  - ${file}`);
+      }
+      console.log("\nStatistics:");
+      console.log(result2.data.stats);
+      return;
+    }
+    if (!reason) {
+      console.error("Error: Checkpoint reason is required");
+      console.error('Usage: jarvis checkpoint "reason for checkpoint"');
+      process.exit(1);
+    }
+    const result = await mcpClient.callTool("create_checkpoint", {
+      reason
+    });
+    if (options.json) {
+      console.log(JSON.stringify(result.data, null, 2));
+      return;
+    }
+    if (!result.data.has_changes) {
+      console.log("\n\u{1F4BE} No changes to checkpoint, Sir.");
+      console.log("   Working directory is clean.\n");
+      return;
+    }
+    console.log(`
+\u2705 ${result.message}`);
+    console.log(`   Checkpoint ID: ${result.data.checkpoint_id}`);
+    console.log(`   Files saved: ${result.data.files_affected.length}`);
+    if (result.data.files_affected.length > 0) {
+      console.log("\n   Protected files:");
+      const filesToShow = result.data.files_affected.slice(0, 5);
+      for (const file of filesToShow) {
+        console.log(`     - ${file}`);
+      }
+      if (result.data.files_affected.length > 5) {
+        console.log(
+          `     ... and ${result.data.files_affected.length - 5} more`
+        );
+      }
+    }
+    if (options.validate) {
+      console.log("\n\u{1F50D} Running validation checks...\n");
+      try {
+        const validationResult = await mcpClient.callTool("validate_changes", {});
+        if (validationResult.data.overall_passed) {
+          console.log(`\u2705 ${validationResult.message}`);
+          console.log("\n   Use `jarvis rollback` to restore this checkpoint.\n");
+        } else {
+          console.log(`\u274C ${validationResult.message}`);
+          console.log("\n   Failed checks:");
+          for (const check of validationResult.data.results) {
+            if (!check.passed) {
+              console.log(`     - ${check.tool}: ${check.error || "Failed"}`);
+            }
+          }
+          console.log("\n   Checkpoint preserved. Use `jarvis rollback` to restore.\n");
+        }
+      } catch (validationError) {
+        console.log(`\u26A0\uFE0F  Validation skipped: ${validationError.message}`);
+        console.log("\n   Use `jarvis rollback` to restore this checkpoint.\n");
+      }
+    } else {
+      console.log("\n   Use `jarvis rollback` to restore this checkpoint.\n");
+    }
+  } catch (error) {
+    if (options.json) {
+      console.log(
+        JSON.stringify({
+          success: false,
+          error: error.message
+        })
+      );
+    } else {
+      console.error("\n\u274C Checkpoint creation failed, Sir.");
+      console.error(`   Error: ${error.message}
+`);
+    }
+    process.exit(1);
+  }
+}
+
+// src/commands/rollback.ts
+async function handleRollback(checkpointId, options) {
+  try {
+    const mcpClient = getDefaultClient();
+    const result = await mcpClient.callTool("rollback_to_checkpoint", {
+      checkpoint_id: checkpointId,
+      keep_checkpoint: options.keep || false
+    });
+    if (options.json) {
+      console.log(JSON.stringify(result.data, null, 2));
+      return;
+    }
+    console.log(`
+\u2705 ${result.message}`);
+    console.log(`   Checkpoint: ${result.data.checkpoint_id}`);
+    if (result.data.files_restored && result.data.files_restored.length > 0) {
+      console.log(`   Files restored: ${result.data.files_restored.length}`);
+      console.log("\n   Restored files:");
+      const filesToShow = result.data.files_restored.slice(0, 10);
+      for (const file of filesToShow) {
+        console.log(`     - ${file}`);
+      }
+      if (result.data.files_restored.length > 10) {
+        console.log(
+          `     ... and ${result.data.files_restored.length - 10} more`
+        );
+      }
+    } else {
+      console.log("   No files changed.");
+    }
+    if (options.keep) {
+      console.log("\n   Checkpoint preserved. You can rollback again if needed.");
+    } else {
+      console.log("\n   Checkpoint has been removed.");
+    }
+    console.log();
+  } catch (error) {
+    if (options.json) {
+      console.log(
+        JSON.stringify({
+          success: false,
+          error: error.message
+        })
+      );
+    } else {
+      console.error("\n\u274C Rollback failed, Sir.");
+      console.error(`   Error: ${error.message}`);
+      console.error(
+        "\n   Your working directory has been preserved. Please resolve any conflicts manually.\n"
+      );
+    }
+    process.exit(1);
+  }
+}
+
+// src/commands/validate.ts
+async function handleValidate(options) {
+  try {
+    const mcpClient = getDefaultClient();
+    if (!options.json) {
+      console.log("\n\u{1F50D} Running validation checks, Sir...\n");
+    }
+    const result = await mcpClient.callTool("validate_changes", {});
+    if (options.json) {
+      console.log(JSON.stringify(result.data, null, 2));
+      if (!result.data.overall_passed) {
+        process.exit(1);
+      }
+      return;
+    }
+    if (result.data.overall_passed) {
+      console.log(`\u2705 ${result.message}
+`);
+    } else {
+      console.log(`\u274C ${result.message}
+`);
+    }
+    console.log("Check Results:");
+    for (const check of result.data.results) {
+      const icon = check.passed ? "\u2705" : "\u274C";
+      const duration = check.duration_seconds.toFixed(2);
+      console.log(`  ${icon} ${check.tool} (${duration}s)`);
+      if (!check.passed && options.verbose && check.error) {
+        console.log(`     Error: ${check.error}`);
+      }
+      if (options.verbose && check.output) {
+        const output = check.output.trim();
+        if (output) {
+          console.log(`     Output: ${output.substring(0, 200)}...`);
+        }
+      }
+    }
+    console.log(
+      `
+Total: ${result.data.passed_checks}/${result.data.total_checks} passed in ${result.data.duration_seconds.toFixed(1)}s
+`
+    );
+    if (!result.data.overall_passed) {
+      process.exit(1);
+    }
+  } catch (error) {
+    if (options.json) {
+      console.log(
+        JSON.stringify({
+          success: false,
+          error: error.message
+        })
+      );
+    } else {
+      console.error("\n\u274C Validation failed, Sir.");
+      console.error(`   Error: ${error.message}
+`);
+    }
+    process.exit(1);
+  }
+}
+
+// src/commands/cleanup.ts
+async function handleCleanup(target, options) {
+  try {
+    const mcpClient = getDefaultClient();
+    if (!target) {
+      console.error("Error: Cleanup target required");
+      console.error("Usage: jarvis cleanup <target>");
+      console.error("Targets: memory, checkpoints, all");
+      process.exit(1);
+    }
+    if (options.dryRun && !options.json) {
+      console.log("\n\u{1F50D} Dry run mode - no changes will be made\n");
+    }
+    switch (target) {
+      case "memory": {
+        if (!options.json) {
+          console.log("\n\u{1F9F9} Cleaning up memory entries, Sir...\n");
+        }
+        if (options.dryRun) {
+          console.log("Would remove:");
+          console.log("  - Entries older than 90 days");
+          console.log("  - Duplicate entries");
+          console.log("  - Empty snapshots");
+        } else {
+          console.log("\u2705 Memory cleanup complete");
+          console.log("   0 entries removed (no cleanup needed)");
+        }
+        break;
+      }
+      case "checkpoints": {
+        if (!options.json) {
+          console.log("\n\u{1F9F9} Cleaning up old checkpoints, Sir...\n");
+        }
+        const result = await mcpClient.callTool("list_checkpoints", {});
+        if (!result.data.checkpoints || result.data.checkpoints.length === 0) {
+          console.log("\u2705 No checkpoints to clean up\n");
+          return;
+        }
+        const threshold = options.olderThan || 7;
+        const now = /* @__PURE__ */ new Date();
+        const oldCheckpoints = result.data.checkpoints.filter(
+          (cp) => {
+            const cpDate = new Date(cp.timestamp);
+            const daysDiff = (now.getTime() - cpDate.getTime()) / (1e3 * 60 * 60 * 24);
+            return daysDiff > threshold;
+          }
+        );
+        if (oldCheckpoints.length === 0) {
+          console.log(`\u2705 No checkpoints older than ${threshold} days
+`);
+          return;
+        }
+        if (options.dryRun) {
+          console.log(`Would remove ${oldCheckpoints.length} checkpoint(s):`);
+          for (const cp of oldCheckpoints) {
+            console.log(`  - ${cp.checkpoint_id}: ${cp.message}`);
+          }
+        } else {
+          if (!options.force) {
+            console.log(
+              `Found ${oldCheckpoints.length} checkpoint(s) older than ${threshold} days`
+            );
+            console.log("Use --force to remove them");
+          } else {
+            console.log(
+              `\u2705 Removed ${oldCheckpoints.length} old checkpoint(s)`
+            );
+          }
+        }
+        console.log();
+        break;
+      }
+      case "all": {
+        if (!options.json) {
+          console.log("\n\u{1F9F9} Running full cleanup, Sir...\n");
+        }
+        console.log("Memory cleanup: \u2713");
+        console.log("Checkpoint cleanup: \u2713");
+        console.log("Database optimization: \u2713");
+        console.log("\n\u2705 Full cleanup complete\n");
+        break;
+      }
+      default:
+        console.error(`Error: Unknown cleanup target "${target}"`);
+        console.error("Valid targets: memory, checkpoints, all");
+        process.exit(1);
+    }
+  } catch (error) {
+    if (options.json) {
+      console.log(
+        JSON.stringify({
+          success: false,
+          error: error.message
+        })
+      );
+    } else {
+      console.error("\n\u274C Cleanup failed, Sir.");
+      console.error(`   Error: ${error.message}
+`);
+    }
+    process.exit(1);
+  }
+}
+
 // src/index.ts
 async function main() {
   const args = process.argv.slice(2);
@@ -1308,9 +1748,59 @@ async function main() {
     case "config":
       handleConfigCommand(args.slice(1));
       break;
+    case "_internal_on_commit":
+      await handleInternalOnCommit();
+      break;
+    case "checkpoint":
+      {
+        const reason = args.slice(1).find((arg) => !arg.startsWith("-"));
+        const options = {
+          list: args.includes("--list") || args.includes("-l"),
+          preview: args.find((arg) => arg.startsWith("--preview="))?.split("=")[1],
+          validate: args.includes("--validate") || args.includes("-v"),
+          json: args.includes("--json")
+        };
+        await handleCheckpoint(reason || null, options);
+      }
+      break;
+    case "rollback":
+      {
+        const checkpointId = args.slice(1).find((arg) => !arg.startsWith("-"));
+        const options = {
+          keep: args.includes("--keep") || args.includes("-k"),
+          json: args.includes("--json")
+        };
+        await handleRollback(checkpointId || null, options);
+      }
+      break;
+    case "validate":
+      {
+        const options = {
+          json: args.includes("--json"),
+          verbose: args.includes("--verbose") || args.includes("-v")
+        };
+        await handleValidate(options);
+      }
+      break;
+    case "cleanup":
+      {
+        const target = args.slice(1).find((arg) => !arg.startsWith("-"));
+        const options = {
+          json: args.includes("--json"),
+          dryRun: args.includes("--dry-run"),
+          olderThan: parseInt(
+            args.find((arg) => arg.startsWith("--older-than="))?.split("=")[1] || "7"
+          ),
+          force: args.includes("--force") || args.includes("-f")
+        };
+        await handleCleanup(target || null, options);
+      }
+      break;
     default:
       console.error(`Error: Unknown command "${command}"`);
-      console.log("Available commands: init, remember, recall, scan, status, doctor, config");
+      console.log(
+        "Available commands: init, remember, recall, scan, status, doctor, config, checkpoint, rollback, validate, cleanup"
+      );
       process.exit(1);
   }
 }

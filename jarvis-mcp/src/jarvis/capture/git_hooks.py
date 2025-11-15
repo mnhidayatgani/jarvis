@@ -109,11 +109,9 @@ class GitHooks:
             "success": len(errors) == 0,
             "removed": removed,
             "errors": errors,
-            "message": (
-                f"Removed {len(removed)} hook(s)"
-                if removed
-                else "No JARVIS hooks found"
-            ),
+            "message": f"Removed {len(removed)} hook(s)"
+            if removed
+            else "No JARVIS hooks found",
         }
 
     def _install_hook(self, hook_name: str, force: bool) -> dict[str, Any]:
@@ -195,26 +193,20 @@ exit 0
         """Get post-commit hook template."""
         return """#!/bin/bash
 # JARVIS Post-Commit Hook
-# Updates commit information after successful commit
+# Captures commit information and triggers JARVIS memory storage
 
 # Get project root and commit info
 PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 JARVIS_DIR="$PROJECT_ROOT/.jarvis"
-COMMIT_SHA="$(git rev-parse HEAD)"
-COMMIT_MSG="$(git log -1 --pretty=%B)"
 
 # Skip if JARVIS not initialized
 if [ ! -d "$JARVIS_DIR" ]; then
     exit 0
 fi
 
-# Store commit metadata
-echo "$COMMIT_SHA" > "$JARVIS_DIR/.last_commit_sha"
-echo "$COMMIT_MSG" > "$JARVIS_DIR/.last_commit_msg"
-
-# Clean up staged change files
-rm -f "$JARVIS_DIR/.staged_changes"
-rm -f "$JARVIS_DIR/.staged_diff"
+# Call JARVIS internal command to capture commit (run in background to avoid blocking)
+cd "$PROJECT_ROOT"
+jarvis _internal_on_commit > /dev/null 2>&1 &
 
 exit 0
 """

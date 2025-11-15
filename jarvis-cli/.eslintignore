@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+*.js.map
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Test artifacts
+.vitest/
+test-results/
+
+# Temporary files
+*.tmp
+.cache/
+
+# Generated files
+*.d.ts.map

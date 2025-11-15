@@ -2,7 +2,7 @@
  * Init Command - Initialize JARVIS memory system in a project
  */
 
-import { existsSync, mkdirSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs'
 import { resolve, basename } from 'path'
 import { execSync } from 'child_process'
 import { createHash } from 'crypto'
@@ -70,6 +70,12 @@ export async function handleInitCommand(options: InitOptions = {}): Promise<void
     createProjectContext(jarvisDir, projectId, projectName, projectRoot)
     output.progress('Created project context')
 
+    // Install git hooks if in a git repository
+    if (isGitRepo) {
+      installGitHooks(projectRoot, options)
+      output.progress('Installed git hooks for auto-capture')
+    }
+
     // Success message
     output.success('JARVIS memory system initialized')
 
@@ -134,6 +140,59 @@ function checkGitRepository(projectRoot: string): boolean {
     return true
   } catch {
     return false
+  }
+}
+
+/**
+ * Install git hooks for auto-capture
+ */
+function installGitHooks(projectRoot: string, options: InitOptions): void {
+  const gitHooksDir = resolve(projectRoot, '.git', 'hooks')
+  const postCommitHook = resolve(gitHooksDir, 'post-commit')
+
+  // Hook script template
+  const hookScript = `#!/bin/bash
+# JARVIS Post-Commit Hook
+# Captures commit information and triggers JARVIS memory storage
+
+# Get project root
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+JARVIS_DIR="$PROJECT_ROOT/.jarvis"
+
+# Skip if JARVIS not initialized
+if [ ! -d "$JARVIS_DIR" ]; then
+    exit 0
+fi
+
+# Call JARVIS internal command to capture commit (run in background to avoid blocking)
+cd "$PROJECT_ROOT"
+jarvis _internal_on_commit > /dev/null 2>&1 &
+
+exit 0
+`
+
+  try {
+    // Check if hook already exists
+    if (existsSync(postCommitHook) && !options.force) {
+      const existingContent = readFileSync(postCommitHook, 'utf-8')
+      if (existingContent.includes('JARVIS')) {
+        // Hook already installed
+        return
+      }
+      // Existing non-JARVIS hook - skip installation
+      if (options.verbose) {
+        console.log('Warning: Existing post-commit hook found. Use --force to overwrite.')
+      }
+      return
+    }
+
+    // Write hook script
+    writeFileSync(postCommitHook, hookScript, { mode: 0o755 })
+  } catch (error) {
+    // Non-fatal error - hook installation failed but init can continue
+    if (options.verbose) {
+      console.log('Warning: Could not install git hooks:', error)
+    }
   }
 }
 

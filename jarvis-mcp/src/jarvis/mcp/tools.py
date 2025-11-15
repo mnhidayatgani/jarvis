@@ -12,10 +12,18 @@ from typing import Any
 
 from jarvis.capture.git_hooks import GitHooks
 from jarvis.capture.scanner import analyze_tech_stack, generate_scan_report
+from jarvis.capture.validator import ValidationError, run_validation
 from jarvis.memory.core import initialize_databases
 from jarvis.memory.factual import FactualMemory
 from jarvis.memory.remember import add_decision
 from jarvis.memory.semantic import SemanticMemory
+from jarvis.memory.safety import (
+    SafetyError,
+    create_checkpoint,
+    list_checkpoints,
+    preview_checkpoint,
+    rollback_to_checkpoint,
+)
 from jarvis.utils.config import Configuration
 from jarvis.utils.embeddings import EmbeddingsWrapper
 from jarvis.utils.persona import JarvisPersona
@@ -786,6 +794,254 @@ class MCPTools:
 
         text_lower = text.lower()
         return any(keyword in text_lower for keyword in keywords)
+
+    def on_commit(
+        self,
+        commit_sha: str,
+        commit_message: str,
+        author: str,
+        date: str,
+        files_changed: list[str],
+        diff_path: str,
+        project_root: str,
+    ) -> dict[str, Any]:
+        """Capture git commit event and store in memory.
+
+        Called by git post-commit hook to automatically track code changes.
+
+        Args:
+            commit_sha: Git commit SHA hash.
+            commit_message: Commit message.
+            author: Commit author.
+            date: Commit date (ISO format).
+            files_changed: List of files changed in commit.
+            diff_path: Path to saved diff file.
+            project_root: Project root path.
+
+        Returns:
+            Dictionary with capture status and metadata.
+        """
+        try:
+            from jarvis.memory.remember import add_commit_event
+
+            result = add_commit_event(
+                project_path=project_root,
+                commit_sha=commit_sha,
+                commit_message=commit_message,
+                author=author,
+                date=date,
+                files_changed=files_changed,
+                diff_path=diff_path,
+            )
+
+            # Format message based on whether decision was detected
+            if result.get("has_decision"):
+                message = self.persona.format_response(
+                    f"Commit captured, Sir. I detected a decision in the commit message. "
+                    f"{result['files_count']} file(s) modified."
+                )
+            else:
+                message = self.persona.format_response(
+                    f"Commit captured: {result['files_count']} file(s) modified."
+                )
+
+            return {
+                "success": True,
+                "commit_sha": commit_sha,
+                "memory_id": result["id"],
+                "files_count": result["files_count"],
+                "has_decision": result.get("has_decision", False),
+                "timestamp": result["timestamp"],
+                "message": message,
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": self.persona.format_error(
+                    "Failed to capture commit", str(e)
+                ),
+            }
+
+    def create_checkpoint(
+        self,
+        reason: str,
+    ) -> dict[str, Any]:
+        """Create a safety checkpoint using git stash.
+
+        Args:
+            reason: Human-readable reason for checkpoint.
+
+        Returns:
+            Dictionary with checkpoint information.
+        """
+        try:
+            result = create_checkpoint(
+                project_root=str(self.project_root),
+                reason=reason,
+                project_id=self.project_id,
+                factual_memory=self.factual,
+            )
+
+            if not result["has_changes"]:
+                message = self.persona.format_response(
+                    "No changes to checkpoint, Sir. Working directory is clean."
+                )
+            else:
+                message = self.persona.format_response(
+                    f"Checkpoint created: {result['checkpoint_id']}, Sir. "
+                    f"{len(result['files_affected'])} file(s) protected."
+                )
+
+            return {
+                "success": True,
+                "data": result,
+                "message": message,
+            }
+
+        except SafetyError as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": self.persona.format_error("Checkpoint creation failed", str(e)),
+            }
+
+    def list_checkpoints(self) -> dict[str, Any]:
+        """List all available checkpoints.
+
+        Returns:
+            Dictionary with list of checkpoints.
+        """
+        try:
+            checkpoints = list_checkpoints(str(self.project_root))
+
+            if not checkpoints:
+                message = self.persona.format_response("No checkpoints found, Sir.")
+            else:
+                message = self.persona.format_response(
+                    f"Found {len(checkpoints)} checkpoint(s), Sir."
+                )
+
+            return {
+                "success": True,
+                "data": {"checkpoints": checkpoints},
+                "message": message,
+            }
+
+        except SafetyError as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": self.persona.format_error("Failed to list checkpoints", str(e)),
+            }
+
+    def preview_checkpoint(
+        self,
+        checkpoint_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Preview what would change if a checkpoint were applied.
+
+        Args:
+            checkpoint_id: Stash reference. If None, uses latest.
+
+        Returns:
+            Dictionary with preview information.
+        """
+        try:
+            preview = preview_checkpoint(str(self.project_root), checkpoint_id)
+
+            message = self.persona.format_response(
+                f"Preview for {preview['checkpoint_id']}: "
+                f"{len(preview['files_changed'])} file(s) would be restored, Sir."
+            )
+
+            return {
+                "success": True,
+                "data": preview,
+                "message": message,
+            }
+
+        except SafetyError as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": self.persona.format_error("Preview failed", str(e)),
+            }
+
+    def rollback_to_checkpoint(
+        self,
+        checkpoint_id: str | None = None,
+        keep_checkpoint: bool = False,
+    ) -> dict[str, Any]:
+        """Rollback to a previous checkpoint.
+
+        Args:
+            checkpoint_id: Stash reference. If None, uses latest.
+            keep_checkpoint: If True, keep the stash after applying.
+
+        Returns:
+            Dictionary with rollback information.
+        """
+        try:
+            result = rollback_to_checkpoint(
+                project_root=str(self.project_root),
+                checkpoint_id=checkpoint_id,
+                keep_checkpoint=keep_checkpoint,
+            )
+
+            action = "restored and preserved" if keep_checkpoint else "restored"
+            message = self.persona.format_response(
+                f"Checkpoint {action}, Sir. "
+                f"{len(result['files_restored'])} file(s) restored."
+            )
+
+            return {
+                "success": True,
+                "data": result,
+                "message": message,
+            }
+
+        except SafetyError as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": self.persona.format_error("Rollback failed", str(e)),
+            }
+
+    def validate_changes(self) -> dict[str, Any]:
+        """Run validation checks on the project.
+
+        Returns:
+            Dictionary with validation results.
+        """
+        try:
+            result = run_validation(str(self.project_root))
+
+            if result["overall_passed"]:
+                message = self.persona.format_response(
+                    f"All validation checks passed, Sir. "
+                    f"{result['passed_checks']}/{result['total_checks']} checks successful "
+                    f"in {result['duration_seconds']:.1f}s."
+                )
+            else:
+                message = self.persona.format_error(
+                    f"Validation failed, Sir",
+                    f"{result['failed_checks']} of {result['total_checks']} checks failed.",
+                )
+
+            return {
+                "success": True,
+                "data": result,
+                "message": message,
+            }
+
+        except ValidationError as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": self.persona.format_error("Validation unavailable", str(e)),
+            }
 
 
 def get_mcp_tools(project_root: Path) -> MCPTools:
